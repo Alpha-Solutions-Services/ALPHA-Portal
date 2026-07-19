@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { role?: string; error?: string };
+  searchParams: { role?: string; error?: string; reason?: string };
 }) {
   const user = await getPortalUser();
   if (user) {
@@ -23,8 +23,10 @@ export default async function LoginPage({
         <LoginForm defaultAdmin={isAdmin} />
       </Suspense>
       {searchParams.error ? (
-        <p className="fixed bottom-6 text-sm text-red-400">
-          Authentication failed. Please try again.
+        <p className="fixed bottom-6 max-w-lg px-4 text-center text-sm text-red-400">
+          Authentication failed
+          {searchParams.reason ? `: ${searchParams.reason}` : ""}. Try again, or
+          check Supabase Redirect URLs include this portal.
         </p>
       ) : null}
     </main>

@@ -40,7 +40,7 @@ export const config = {
     "/dashboard/:path*",
     "/admin/:path*",
     "/login",
-    "/auth/callback",
+    // Do NOT run middleware on /auth/callback — it can break PKCE cookie exchange
     "/api/:path*",
   ],
 };
