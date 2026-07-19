@@ -63,7 +63,14 @@ export function LoginForm({ defaultAdmin = false }: { defaultAdmin?: boolean }) 
       return;
     }
     const next = defaultAdmin ? "/admin" : "/dashboard";
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+    // Path-only redirect (no query) matches Supabase allowlist more reliably;
+    // next is stored in sessionStorage for the callback page.
+    try {
+      sessionStorage.setItem("portal_oauth_next", next);
+    } catch {
+      /* ignore */
+    }
+    const redirectTo = `${window.location.origin}/auth/callback`;
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -78,7 +85,7 @@ export function LoginForm({ defaultAdmin = false }: { defaultAdmin?: boolean }) 
       setError(
         err.message.includes("provider")
           ? "Google sign-in is not enabled in Supabase Auth → Providers."
-          : `${err.message} — add ${window.location.origin}/auth/callback to Supabase Auth → URL Configuration → Redirect URLs.`
+          : `${err.message} — add ${redirectTo} to Supabase Auth → URL Configuration → Redirect URLs.`
       );
       setBusy(false);
     }
