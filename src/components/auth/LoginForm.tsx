@@ -54,18 +54,34 @@ export function LoginForm({ defaultAdmin = false }: { defaultAdmin?: boolean }) 
   }
 
   async function google() {
+    setBusy(true);
+    setError(null);
     const supabase = createClient();
     if (!supabase) {
-      setError("Auth is not configured");
+      setError("Auth is not configured (missing Supabase env on Vercel)");
+      setBusy(false);
       return;
     }
     const next = defaultAdmin ? "/admin" : "/dashboard";
-    await supabase.auth.signInWithOAuth({
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+    const { error: err } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        redirectTo,
+        queryParams: {
+          access_type: "offline",
+          prompt: "select_account",
+        },
       },
     });
+    if (err) {
+      setError(
+        err.message.includes("provider")
+          ? "Google sign-in is not enabled in Supabase Auth → Providers."
+          : `${err.message} — add ${window.location.origin}/auth/callback to Supabase Auth → URL Configuration → Redirect URLs.`
+      );
+      setBusy(false);
+    }
   }
 
   return (

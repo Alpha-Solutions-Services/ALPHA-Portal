@@ -17,9 +17,24 @@ git push -u origin main
 - [ ] Create CNAME `portal.alphasolutions.software` → your host (Vercel/Netlify)
 - [ ] SSL certificate issued for the subdomain
 
-## Hosting
-- [ ] Connect `ALPHA-Portal` repo to Vercel/Netlify (root = repo root)
-- [ ] Set env vars from `.env.example`
+## Hosting (fixes `404: NOT_FOUND` on portal.alphasolutions.software)
+
+DNS already points at Vercel. The 404 means **no Vercel project owns that domain yet**.
+
+1. Open [Vercel Dashboard](https://vercel.com/dashboard) → **Add New… → Project**
+2. Import **`Alpha-Solutions-Services/ALPHA-Portal`** (Framework: Next.js, Root Directory: `.`)
+3. Add env vars from `.env.example` (Production + Preview)
+4. Deploy
+5. Project → **Settings → Domains** → Add `portal.alphasolutions.software`
+   - If Vercel says the domain is used elsewhere, remove it from that other project first, then add it here
+6. Wait for SSL / “Valid Configuration”
+
+CLI alternative (from `PORTAL/` after `vercel login`):
+
+```bash
+npx vercel --prod
+npx vercel domains add portal.alphasolutions.software
+```
 
 ## Environment variables (hosting)
 Required:
@@ -31,12 +46,19 @@ Required:
 - `NEXT_PUBLIC_SITE_URL=https://www.alphasolutions.software`
 - `ADMIN_EMAILS`
 
-## Supabase
-- [ ] Run `supabase/schema-admin-portal.sql` if tables missing
-- [ ] Run `supabase/portal-chat-ai.sql` (attachments, edit/delete, AI, storage, realtime)
-- [ ] Auth → Redirect URLs:
-  - `https://portal.alphasolutions.software/auth/callback`
-  - `http://localhost:3001/auth/callback`
+## Supabase (required for Google login)
+
+1. Open [Supabase Dashboard](https://supabase.com/dashboard) → your project → **Authentication**
+2. **Providers → Google** → Enabled (same Client ID/Secret as the main site)
+3. **URL Configuration** → add these **Redirect URLs** (keep existing www ones):
+   - `https://portal.alphasolutions.software/auth/callback`
+   - `https://portal.alphasolutions.software/**`
+   - `http://localhost:3001/auth/callback`
+4. Save, then try **Continue with Google** again on the portal
+
+Also run SQL if not done:
+- [ ] `supabase/schema-admin-portal.sql` if tables missing
+- [ ] `supabase/portal-chat-ai.sql` (attachments, edit/delete, AI, storage, realtime)
 
 ## Sanity
 - [ ] CORS origins: add `https://portal.alphasolutions.software` and `http://localhost:3001`
