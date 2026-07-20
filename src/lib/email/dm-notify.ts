@@ -1,5 +1,4 @@
 import {
-  createConfiguredTransporter,
   getOpsNotifyEmails,
   resolveSmtpFromAddress,
   sendBrandedMail,
@@ -53,6 +52,3 @@ export async function notifyClientAdminMessage(opts: {
          <p><a href="${portal}/dashboard?tab=messages" style="display:inline-block;margin-top:8px;padding:10px 18px;background:#38a3ff;color:#05080f;border-radius:8px;text-decoration:none;font-weight:600;">Open portal chat</a></p>`,
   });
 }
-
-// Keep unused import warning away if tree-shaken oddly
-void createConfiguredTransporter;
