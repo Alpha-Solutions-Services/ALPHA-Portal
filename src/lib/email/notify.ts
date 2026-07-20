@@ -1,8 +1,6 @@
 import {
-  brandedEmailWrap,
-  createConfiguredTransporter,
   getOpsNotifyEmails,
-  resolveSmtpFromAddress,
+  sendBrandedMail,
 } from "@/lib/email/transport";
 import { getPortalUrl } from "@/lib/supabase/env";
 
@@ -20,24 +18,7 @@ async function send(opts: {
   title: string;
   html: string;
 }) {
-  const transporter = createConfiguredTransporter();
-  if (!transporter) {
-    console.warn("[portal-mail] skip — SMTP not configured:", opts.subject);
-    return;
-  }
-  const from = resolveSmtpFromAddress(
-    "Alpha Solutions <no-reply@alphasolutions.software>"
-  );
-  try {
-    await transporter.sendMail({
-      from,
-      to: opts.to,
-      subject: opts.subject,
-      html: brandedEmailWrap(opts.title, opts.html),
-    });
-  } catch (e) {
-    console.error("[portal-mail] send failed", opts.subject, e);
-  }
+  await sendBrandedMail(opts);
 }
 
 export async function notifyOps(opts: {

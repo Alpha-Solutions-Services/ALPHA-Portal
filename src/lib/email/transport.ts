@@ -1,5 +1,7 @@
+import fs from "fs";
+import path from "path";
 import nodemailer from "nodemailer";
-import { getSiteUrl } from "@/lib/supabase/env";
+import { getPortalUrl, getSiteUrl } from "@/lib/supabase/env";
 
 function stripWrappingQuotes(value: string) {
   const v = value.trim();
@@ -59,26 +61,99 @@ export function createConfiguredTransporter(): nodemailer.Transporter | null {
   return transporter;
 }
 
+/** Absolute public logo URL (portal hosts /alpha-logo.png). */
+export function getEmailLogoUrl() {
+  const override = process.env.EMAIL_LOGO_URL?.trim();
+  if (override) return override;
+  return `${getPortalUrl().replace(/\/$/, "")}/alpha-logo.png`;
+}
+
+/** Inline CID attachment so the logo shows even if the public URL is blocked. */
+export function getEmailLogoAttachment():
+  | {
+      filename: string;
+      content: Buffer;
+      cid: string;
+      contentType: string;
+      contentDisposition: "inline";
+    }
+  | undefined {
+  try {
+    const logoPath = path.join(process.cwd(), "public", "alpha-logo.png");
+    if (!fs.existsSync(logoPath)) return undefined;
+    return {
+      filename: "alpha-logo.png",
+      content: fs.readFileSync(logoPath),
+      cid: "alpha-logo@alphasolutions",
+      contentType: "image/png",
+      contentDisposition: "inline",
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 export function brandedEmailWrap(title: string, innerHtml: string) {
   const site = getSiteUrl();
+  const portal = getPortalUrl();
+  const logo = getEmailLogoAttachment();
+  // Prefer embedded CID; fall back to hosted portal asset
+  const logoSrc = logo
+    ? "cid:alpha-logo@alphasolutions"
+    : getEmailLogoUrl();
+
   return `
 <!DOCTYPE html>
 <html>
 <body style="margin:0;padding:24px;background:#05080f;font-family:'Segoe UI',system-ui,sans-serif;">
   <div style="max-width:560px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid rgba(56,139,253,0.2);background:#0b1120;">
     <div style="background:#0a0f1e;padding:20px;text-align:center;border-bottom:1px solid rgba(56,139,253,0.15);">
-      <img alt="Alpha Solutions" src="${site}/alpha-logo.png" width="52" height="52" style="border-radius:10px;display:inline-block;">
+      <img alt="Alpha Solutions" src="${logoSrc}" width="52" height="52" style="border-radius:10px;display:inline-block;border:0;outline:none;text-decoration:none;">
       <p style="color:#38a3ff;font-size:12px;text-transform:uppercase;letter-spacing:0.12em;margin:12px 0 0">${title}</p>
     </div>
     <div style="padding:28px;color:#edf2f8;font-size:15px;line-height:1.6;">
       ${innerHtml}
     </div>
     <div style="padding:16px;text-align:center;font-size:12px;color:#6a8caf;border-top:1px solid rgba(56,139,253,0.15);background:#081016;">
-      Alpha Solutions | <a href="${site}" style="color:#38a3ff;text-decoration:none">alphasolutions.software</a>
+      Alpha Solutions |
+      <a href="${site}" style="color:#38a3ff;text-decoration:none">alphasolutions.software</a>
+      ·
+      <a href="${portal}" style="color:#38a3ff;text-decoration:none">Portal</a>
     </div>
   </div>
 </body>
 </html>`;
+}
+
+export async function sendBrandedMail(opts: {
+  to: string | string[];
+  subject: string;
+  title: string;
+  html: string;
+  from?: string;
+}) {
+  const transporter = createConfiguredTransporter();
+  if (!transporter) {
+    console.warn("[portal-mail] skip — SMTP not configured:", opts.subject);
+    return;
+  }
+  const from =
+    opts.from ||
+    resolveSmtpFromAddress(
+      "Alpha Solutions <no-reply@alphasolutions.software>"
+    );
+  const logo = getEmailLogoAttachment();
+  try {
+    await transporter.sendMail({
+      from,
+      to: opts.to,
+      subject: opts.subject,
+      html: brandedEmailWrap(opts.title, opts.html),
+      attachments: logo ? [logo] : undefined,
+    });
+  } catch (e) {
+    console.error("[portal-mail] send failed", opts.subject, e);
+  }
 }
 
 export function getOpsNotifyEmails(): string[] {
