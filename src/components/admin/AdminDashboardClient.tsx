@@ -7,16 +7,31 @@ import { motion } from "framer-motion";
 import clsx from "clsx";
 import {
   BarChart3,
+  BookOpen,
+  Calendar,
+  FileSignature,
   FolderKanban,
+  GitBranch,
   Inbox,
   MessageSquare,
   RefreshCw,
   Sparkles,
   Ticket,
+  Users,
 } from "lucide-react";
 import { TicketsPanel } from "@/components/portal/TicketsPanel";
 import { AdminProjectsPanel } from "@/components/admin/AdminProjectsPanel";
 import { AdminAiInbox } from "@/components/admin/AdminAiInbox";
+import { AdminInquiriesPanel } from "@/components/admin/AdminInquiriesPanel";
+import {
+  AdminPipelinePanel,
+  AdminQuotesContractsPanel,
+  AdminSchedulePanel,
+  AdminKnowledgePanel,
+  AdminReportsPanel,
+  AdminStaffPanel,
+} from "@/components/admin/AdminSystemPanels";
+import { useUi } from "@/components/ui/UiProvider";
 
 const WhatsAppChat = dynamic(
   () =>
@@ -57,15 +72,22 @@ type ThreadRow = {
 
 const tabs = [
   { id: "overview" as const, label: "Overview", icon: BarChart3 },
+  { id: "pipeline" as const, label: "Pipeline", icon: GitBranch },
+  { id: "quotes" as const, label: "Quotes", icon: FileSignature },
+  { id: "schedule" as const, label: "Schedule", icon: Calendar },
   { id: "projects" as const, label: "Projects", icon: FolderKanban },
   { id: "tickets" as const, label: "Tickets", icon: Ticket },
   { id: "ai" as const, label: "Assistant", icon: Sparkles },
+  { id: "knowledge" as const, label: "Knowledge", icon: BookOpen },
+  { id: "reports" as const, label: "Reports", icon: BarChart3 },
+  { id: "staff" as const, label: "Staff", icon: Users },
   { id: "inquiries" as const, label: "Inquiries", icon: Inbox },
   { id: "clients" as const, label: "Chat", icon: MessageSquare },
 ];
 
 export function AdminDashboardClient() {
   const searchParams = useSearchParams();
+  const { toast } = useUi();
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("overview");
   const [stats, setStats] = useState<Stats | null>(null);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -77,15 +99,8 @@ export function AdminDashboardClient() {
 
   useEffect(() => {
     const t = searchParams.get("tab");
-    if (
-      t === "inquiries" ||
-      t === "clients" ||
-      t === "overview" ||
-      t === "tickets" ||
-      t === "projects" ||
-      t === "ai"
-    ) {
-      setTab(t);
+    if (t && tabs.some((x) => x.id === t)) {
+      setTab(t as (typeof tabs)[number]["id"]);
     }
   }, [searchParams]);
 
@@ -131,12 +146,18 @@ export function AdminDashboardClient() {
   }
 
   async function patchInquiry(id: string, status: string) {
-    await fetch(`/api/admin/inquiries/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    void refresh();
+    try {
+      const res = await fetch(`/api/admin/inquiries/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      toast({ kind: "success", title: "Status updated" });
+      void refresh();
+    } catch {
+      toast({ kind: "error", title: "Could not update status" });
+    }
   }
 
   return (
@@ -229,66 +250,22 @@ export function AdminDashboardClient() {
           </div>
         ) : null}
 
+        {tab === "pipeline" ? <AdminPipelinePanel /> : null}
+        {tab === "quotes" ? <AdminQuotesContractsPanel /> : null}
+        {tab === "schedule" ? <AdminSchedulePanel /> : null}
+        {tab === "knowledge" ? <AdminKnowledgePanel /> : null}
+        {tab === "reports" ? <AdminReportsPanel /> : null}
+        {tab === "staff" ? <AdminStaffPanel /> : null}
         {tab === "projects" ? <AdminProjectsPanel /> : null}
         {tab === "tickets" ? <TicketsPanel mode="admin" /> : null}
         {tab === "ai" ? <AdminAiInbox initialId={aiConvId} /> : null}
 
         {tab === "inquiries" ? (
-          <div className="max-h-[70vh] overflow-auto rounded-xl border border-[var(--color-border)]">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/40">
-                <tr>
-                  <th className="p-3">Date</th>
-                  <th className="p-3">Contact</th>
-                  <th className="p-3">Service</th>
-                  <th className="p-3">Message</th>
-                  <th className="p-3">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inquiries.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-[var(--color-border)]/60 align-top"
-                  >
-                    <td className="p-3 text-[var(--color-muted)]">
-                      {new Date(row.created_at).toLocaleString()}
-                    </td>
-                    <td className="p-3">
-                      <div className="font-medium text-[var(--color-text)]">
-                        {row.name}
-                      </div>
-                      <a
-                        href={`mailto:${row.email}`}
-                        className="text-[var(--color-accent)] hover:underline"
-                      >
-                        {row.email}
-                      </a>
-                    </td>
-                    <td className="p-3 text-[var(--color-muted)]">
-                      {row.service_slug}
-                    </td>
-                    <td className="max-w-xs p-3 text-[var(--color-muted)]">
-                      <p className="line-clamp-3">{row.message}</p>
-                    </td>
-                    <td className="p-3">
-                      <select
-                        value={row.status}
-                        onChange={(e) =>
-                          void patchInquiry(row.id, e.target.value)
-                        }
-                        className="rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs"
-                      >
-                        <option value="new">new</option>
-                        <option value="contacted">contacted</option>
-                        <option value="closed">closed</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <AdminInquiriesPanel
+            inquiries={inquiries}
+            onRefresh={() => void refresh()}
+            onPatchStatus={patchInquiry}
+          />
         ) : null}
 
         {tab === "clients" ? (

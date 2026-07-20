@@ -22,10 +22,12 @@ export function ResponsiveDashboardShell({
   sidebar,
   mobileTitle,
   children,
+  headerRight,
 }: {
   sidebar: ReactNode;
   mobileTitle: string;
   children: ReactNode;
+  headerRight?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -66,19 +68,20 @@ export function ResponsiveDashboardShell({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-bg)]/95 px-4 py-3 backdrop-blur-md md:hidden">
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-bg)]/95 px-4 py-3 backdrop-blur-md">
           <button
             type="button"
-            className="rounded-lg border border-[var(--color-border)] p-2 text-[var(--color-text)] hover:bg-[var(--color-surface)]"
+            className="rounded-lg border border-[var(--color-border)] p-2 text-[var(--color-text)] hover:bg-[var(--color-surface)] md:hidden"
             aria-expanded={open}
             aria-controls="dashboard-sidebar"
             onClick={() => setOpen(true)}
           >
             <Menu className="h-5 w-5 shrink-0" aria-hidden />
           </button>
-          <span className="min-w-0 truncate text-sm font-semibold text-[var(--color-text)]">
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--color-text)] md:pl-2">
             {mobileTitle}
           </span>
+          {headerRight}
         </header>
         {children}
       </div>

@@ -71,9 +71,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const isInquiryEmail =
+    Boolean(parsed.inquiryId) && parsed.action === "draft";
+
   const prompts = {
-    draft:
-      "Draft a professional, warm reply the admin can send. Output ONLY the reply text, no preamble.",
+    draft: isInquiryEmail
+      ? `Draft a professional email reply from Alpha Solutions to this inquiry.
+Output EXACTLY in this format (no markdown fences):
+SUBJECT: <one-line subject>
+BODY:
+<email body with short paragraphs, sign off as Alpha Solutions team>`
+      : "Draft a professional, warm reply the admin can send. Output ONLY the reply text, no preamble.",
     summarize:
       "Summarize this conversation in 3-5 bullet points for the admin. Output only the bullets.",
     next: "Suggest the single best next action for the admin (1-2 sentences). Output only that suggestion.",
@@ -85,7 +93,7 @@ export async function POST(req: NextRequest) {
       {
         role: "system",
         content:
-          "You help Alpha Solutions admins. Never claim you already sent a message. Never invent facts.",
+          "You help Alpha Solutions admins. Never claim you already sent a message. Never invent facts. Do not invent pricing or timelines unless present in context.",
       },
       {
         role: "user",
@@ -93,9 +101,18 @@ export async function POST(req: NextRequest) {
       },
     ],
     temperature: 0.4,
-    max_tokens: 600,
+    max_tokens: 800,
   });
 
-  const text = completion.choices[0]?.message?.content?.trim() || "";
-  return NextResponse.json({ text });
+  const raw = completion.choices[0]?.message?.content?.trim() || "";
+
+  if (isInquiryEmail) {
+    const subjectMatch = raw.match(/SUBJECT:\s*(.+?)(?:\n|$)/i);
+    const bodyMatch = raw.match(/BODY:\s*([\s\S]*)/i);
+    const subject = subjectMatch?.[1]?.trim();
+    const text = (bodyMatch?.[1] || raw).trim();
+    return NextResponse.json({ text, subject });
+  }
+
+  return NextResponse.json({ text: raw });
 }

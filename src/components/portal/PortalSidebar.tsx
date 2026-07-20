@@ -2,7 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { LayoutDashboard, MessageSquare, Sparkles } from "lucide-react";
+import {
+  Calendar,
+  FileSignature,
+  FileText,
+  FolderKanban,
+  LayoutDashboard,
+  MessageSquare,
+  Sparkles,
+  Ticket,
+} from "lucide-react";
 import { LogoutButton } from "./LogoutButton";
 import { useDashboardMobileNavClose } from "@/components/layout/ResponsiveDashboardShell";
 
@@ -17,7 +26,13 @@ export function PortalSidebar({
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard?tab=tickets", label: "Tickets", icon: MessageSquare },
+    { href: "/dashboard?tab=projects", label: "Projects", icon: FolderKanban },
+    { href: "/dashboard?tab=quotes", label: "Quotes", icon: FileText },
+    { href: "/dashboard?tab=contracts", label: "Contracts", icon: FileSignature },
+    { href: "/dashboard?tab=schedule", label: "Schedule", icon: Calendar },
+    { href: "/dashboard?tab=tickets", label: "Tickets", icon: Ticket },
+    { href: "/dashboard?tab=files", label: "Files", icon: FileText },
+    { href: "/dashboard?tab=messages", label: "Messages", icon: MessageSquare },
     { href: "/dashboard?tab=ai", label: "Assistant", icon: Sparkles },
   ];
 
@@ -26,7 +41,7 @@ export function PortalSidebar({
       <Link
         href="/dashboard"
         onClick={() => close?.()}
-        className="mb-8 flex items-center gap-3"
+        className="mb-6 flex items-center gap-3"
       >
         <Image
           src="/alpha-logo.png"
@@ -46,7 +61,7 @@ export function PortalSidebar({
         </div>
       </Link>
 
-      <nav className="flex flex-1 flex-col gap-1">
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
         {links.map((l) => (
           <Link
             key={l.href}
@@ -54,7 +69,7 @@ export function PortalSidebar({
             onClick={() => close?.()}
             className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--color-muted)] hover:bg-[var(--color-accent-dim)] hover:text-[var(--color-accent)]"
           >
-            <l.icon className="h-4 w-4" />
+            <l.icon className="h-4 w-4 shrink-0" />
             {l.label}
           </Link>
         ))}

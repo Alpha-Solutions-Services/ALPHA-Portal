@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { ResponsiveDashboardShell } from "@/components/layout/ResponsiveDashboardShell";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
-import { isAdminUser } from "@/lib/admin-auth";
+import { isPortalStaff } from "@/lib/admin-auth";
 import { getPortalUser, portalDisplayName } from "@/lib/portal/auth";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export default async function DashboardLayout({
 }) {
   const user = await getPortalUser();
   if (!user) redirect("/login");
-  if (isAdminUser(user)) redirect("/admin");
+  if (await isPortalStaff(user)) redirect("/admin");
 
   return (
     <ResponsiveDashboardShell
@@ -24,6 +25,7 @@ export default async function DashboardLayout({
           email={user.email}
         />
       }
+      headerRight={<NotificationBell />}
     >
       {children}
     </ResponsiveDashboardShell>

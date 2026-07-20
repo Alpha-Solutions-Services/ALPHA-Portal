@@ -148,17 +148,35 @@ export async function emailProjectAssigned(opts: {
   });
 }
 
+export async function emailAiChatStarted(opts: {
+  clientEmail?: string | null;
+  firstMessage: string;
+  conversationId: string;
+}) {
+  const portal = getPortalUrl();
+  await notifyOps({
+    subject: `New Assistant chat started${opts.clientEmail ? ` — ${opts.clientEmail}` : ""}`,
+    title: "New AI chat",
+    html: `<p>A client started a new Alpha Assistant conversation.</p>
+      <p style="color:#6a8caf;font-size:13px;">${escapeHtml(opts.clientEmail || "unknown")}</p>
+      <p><strong>First message:</strong></p>
+      <blockquote style="margin:8px 0 16px;padding:12px 16px;border-left:3px solid #38a3ff;background:#0f1829;">${escapeHtml(opts.firstMessage.slice(0, 500))}</blockquote>
+      <p><a href="${portal}/admin?tab=ai&c=${opts.conversationId}" style="color:#38a3ff;">Open shared chat</a></p>`,
+  });
+}
+
 export async function emailAiChat(opts: {
   clientEmail?: string | null;
   userMessage: string;
   assistantReply: string;
   conversationId: string;
+  isNewConversation?: boolean;
 }) {
   const portal = getPortalUrl();
   await notifyOps({
-    subject: `Alpha Assistant chat${opts.clientEmail ? ` — ${opts.clientEmail}` : ""}`,
-    title: "Assistant conversation",
-    html: `<p>Client spoke with Alpha Assistant.</p>
+    subject: `${opts.isNewConversation ? "New" : "Update"} — Assistant chat${opts.clientEmail ? ` — ${opts.clientEmail}` : ""}`,
+    title: opts.isNewConversation ? "New AI chat" : "Assistant conversation",
+    html: `<p>${opts.isNewConversation ? "A client started chatting with Alpha Assistant." : "Client spoke with Alpha Assistant."}</p>
       <p style="color:#6a8caf;font-size:13px;">${escapeHtml(opts.clientEmail || "unknown")}</p>
       <p><strong>Client:</strong></p>
       <blockquote style="margin:8px 0 16px;padding:12px 16px;border-left:3px solid #38a3ff;background:#0f1829;">${escapeHtml(opts.userMessage.slice(0, 400))}</blockquote>

@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   BarChart3,
+  Calendar,
+  FileSignature,
   FileText,
   FolderKanban,
   MessageSquare,
@@ -21,6 +23,11 @@ import {
   type CrmProject,
 } from "./ProjectProgressView";
 import { TicketsPanel } from "./TicketsPanel";
+import {
+  ClientContractsPanel,
+  ClientQuotesPanel,
+  ClientSchedulePanel,
+} from "./ClientSystemPanels";
 
 const DashboardStats = dynamic(
   () => import("./DashboardStats").then((m) => m.DashboardStats),
@@ -41,6 +48,9 @@ const WHATSAPP_DIGITS = "923494206922";
 const tabs = [
   { id: "overview" as const, label: "Overview", icon: BarChart3 },
   { id: "projects" as const, label: "Projects", icon: FolderKanban },
+  { id: "quotes" as const, label: "Quotes", icon: FileText },
+  { id: "contracts" as const, label: "Contracts", icon: FileSignature },
+  { id: "schedule" as const, label: "Schedule", icon: Calendar },
   { id: "tickets" as const, label: "Tickets", icon: Ticket },
   { id: "files" as const, label: "Files", icon: FileText },
   { id: "messages" as const, label: "Messages", icon: MessageSquare },
@@ -67,15 +77,8 @@ export function PortalDashboardClient({
   const [aiChats, setAiChats] = useState(0);
 
   useEffect(() => {
-    if (
-      tabParam === "projects" ||
-      tabParam === "files" ||
-      tabParam === "messages" ||
-      tabParam === "overview" ||
-      tabParam === "ai" ||
-      tabParam === "tickets"
-    ) {
-      setActiveTab(tabParam);
+    if (tabParam && tabs.some((t) => t.id === tabParam)) {
+      setActiveTab(tabParam as (typeof tabs)[number]["id"]);
     }
   }, [tabParam]);
 
@@ -328,16 +331,11 @@ export function PortalDashboardClient({
 
         {activeTab === "tickets" ? <TicketsPanel mode="client" /> : null}
 
-        {activeTab === "files" ? (
-          <FileLibrary
-            files={files}
-            onUploadClick={() =>
-              window.alert(
-                "Email files to info@alphasolutions.software or share in chat."
-              )
-            }
-          />
-        ) : null}
+        {activeTab === "quotes" ? <ClientQuotesPanel /> : null}
+        {activeTab === "contracts" ? <ClientContractsPanel /> : null}
+        {activeTab === "schedule" ? <ClientSchedulePanel /> : null}
+
+        {activeTab === "files" ? <FileLibrary files={files} /> : null}
 
         {activeTab === "messages" ? (
           <div className="space-y-4">

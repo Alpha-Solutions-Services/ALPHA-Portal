@@ -49,6 +49,13 @@ Required:
 ## CRM SQL (required for tickets + projects)
 - [ ] Run `supabase/portal-crm.sql` in Supabase SQL Editor
 - [ ] If CRM was already applied earlier, also run `supabase/portal-crm-project-comments.sql` (client comments RLS)
+- [ ] Run `supabase/portal-files.sql` for client document uploads (bucket + table)
+- [ ] Run `supabase/portal-system.sql` for pipeline, quotes, bookings, contracts, notifications, knowledge, staff roles, milestone approvals
+
+Optional env:
+- `OWNER_EMAILS` — owners see revenue and manage staff
+- `NEXT_PUBLIC_CAL_COM_URL` — Cal.com link in Schedule tab
+- WhatsApp alerts: ops emails already notify; in-app bell covers portal users
 
 ## Supabase (required for Google login)
 

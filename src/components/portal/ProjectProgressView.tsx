@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import clsx from "clsx";
+import { useUiOptional } from "@/components/ui/UiProvider";
 
 export type CrmProject = {
   id: string;
@@ -33,6 +34,9 @@ export type CrmProject = {
     title: string;
     status: string;
     due_date?: string | null;
+    requires_approval?: boolean;
+    approval_status?: string | null;
+    client_note?: string | null;
   }>;
   team?: Array<{ id?: string; name: string; role?: string | null }>;
   updates?: Array<{
@@ -66,6 +70,7 @@ export function ProjectProgressView({
   onRefresh,
   onDeleted,
 }: Props) {
+  const ui = useUiOptional();
   const [comment, setComment] = useState("");
   const [commentBusy, setCommentBusy] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
@@ -134,22 +139,39 @@ export function ProjectProgressView({
       }
       setEditing(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Update failed");
+      ui?.toast({
+        kind: "error",
+        title: "Update failed",
+        message: err instanceof Error ? err.message : "Try again",
+      });
     } finally {
       setActionBusy(null);
     }
   }
 
   async function deleteProject() {
-    if (!confirm(`Delete "${project.title}"? This cannot be undone.`)) return;
+    const ok = ui
+      ? await ui.confirm({
+          title: "Delete project?",
+          message: `“${project.title}” will be permanently removed. This cannot be undone.`,
+          confirmLabel: "Delete project",
+          danger: true,
+        })
+      : window.confirm(`Delete "${project.title}"? This cannot be undone.`);
+    if (!ok) return;
     setActionBusy("delete");
     try {
       const res = await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
       const j = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(j.error || "Delete failed");
+      ui?.toast({ kind: "success", title: "Project deleted" });
       onDeleted?.();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Delete failed");
+      ui?.toast({
+        kind: "error",
+        title: "Delete failed",
+        message: err instanceof Error ? err.message : "Try again",
+      });
     } finally {
       setActionBusy(null);
     }
@@ -390,14 +412,14 @@ export function ProjectProgressView({
             ) : (
               milestones.map((m, i) => (
                 <li key={m.id || i} className="flex items-start gap-3 text-sm">
-                  {m.status === "done" ? (
+                  {m.status === "done" || m.approval_status === "approved" ? (
                     <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-400" />
                   ) : m.status === "in_progress" ? (
                     <Clock3 className="mt-0.5 h-4 w-4 text-amber-300" />
                   ) : (
                     <Circle className="mt-0.5 h-4 w-4 text-[var(--color-muted)]" />
                   )}
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p
                       className={clsx(
                         "font-medium",
@@ -412,6 +434,94 @@ export function ProjectProgressView({
                       <p className="text-xs text-[var(--color-muted)]">
                         Due {m.due_date}
                       </p>
+                    ) : null}
+                    {m.approval_status && m.approval_status !== "none" ? (
+                      <p className="mt-0.5 text-[11px] text-[var(--color-accent)]">
+                        Approval: {m.approval_status.replace("_", " ")}
+                      </p>
+                    ) : null}
+                    {mode === "admin" && m.id ? (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <button
+                          type="button"
+                          className="rounded-lg border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-muted)] hover:text-[var(--color-accent)]"
+                          onClick={() =>
+                            void fetch("/api/milestones", {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                milestoneId: m.id,
+                                action: "request_approval",
+                              }),
+                            }).then(async () => {
+                              const r = await fetch(`/api/projects/${project.id}`);
+                              const j = await r.json();
+                              if (j.project) onRefresh?.(j.project);
+                              ui?.toast({
+                                kind: "success",
+                                title: "Approval requested",
+                              });
+                            })
+                          }
+                        >
+                          Request approval
+                        </button>
+                      </div>
+                    ) : null}
+                    {mode === "client" &&
+                    m.id &&
+                    m.approval_status === "pending" ? (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <button
+                          type="button"
+                          className="rounded-lg bg-[var(--color-accent)] px-2 py-0.5 text-[10px] font-semibold text-[#05080f]"
+                          onClick={() =>
+                            void fetch("/api/milestones", {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                milestoneId: m.id,
+                                action: "approve",
+                              }),
+                            }).then(async () => {
+                              const r = await fetch(`/api/projects/${project.id}`);
+                              const j = await r.json();
+                              if (j.project) onRefresh?.(j.project);
+                              ui?.toast({
+                                kind: "success",
+                                title: "Milestone approved",
+                              });
+                            })
+                          }
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-lg border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-muted)]"
+                          onClick={() =>
+                            void fetch("/api/milestones", {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                milestoneId: m.id,
+                                action: "request_changes",
+                                note: "Changes requested",
+                              }),
+                            }).then(async () => {
+                              const r = await fetch(`/api/projects/${project.id}`);
+                              const j = await r.json();
+                              if (j.project) onRefresh?.(j.project);
+                              ui?.toast({
+                                kind: "info",
+                                title: "Changes requested",
+                              });
+                            })
+                          }
+                        >
+                          Request changes
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                 </li>

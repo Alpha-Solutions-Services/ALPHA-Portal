@@ -3,12 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  BarChart3,
+  BookOpen,
+  Calendar,
+  FileSignature,
   FolderKanban,
+  GitBranch,
   Inbox,
   LayoutDashboard,
   MessageSquare,
   Sparkles,
   Ticket,
+  Users,
 } from "lucide-react";
 import { LogoutButton } from "@/components/portal/LogoutButton";
 import { useDashboardMobileNavClose } from "@/components/layout/ResponsiveDashboardShell";
@@ -18,9 +24,15 @@ export function AdminSidebar({ email }: { email?: string | null }) {
 
   const links = [
     { href: "/admin", label: "Overview", icon: LayoutDashboard },
+    { href: "/admin?tab=pipeline", label: "Pipeline", icon: GitBranch },
+    { href: "/admin?tab=quotes", label: "Quotes & contracts", icon: FileSignature },
+    { href: "/admin?tab=schedule", label: "Schedule", icon: Calendar },
     { href: "/admin?tab=projects", label: "Projects", icon: FolderKanban },
     { href: "/admin?tab=tickets", label: "Tickets", icon: Ticket },
     { href: "/admin?tab=ai", label: "Assistant", icon: Sparkles },
+    { href: "/admin?tab=knowledge", label: "Knowledge", icon: BookOpen },
+    { href: "/admin?tab=reports", label: "Reports", icon: BarChart3 },
+    { href: "/admin?tab=staff", label: "Staff", icon: Users },
     { href: "/admin?tab=inquiries", label: "Inquiries", icon: Inbox },
     { href: "/admin?tab=clients", label: "Chat", icon: MessageSquare },
   ];
@@ -30,7 +42,7 @@ export function AdminSidebar({ email }: { email?: string | null }) {
       <Link
         href="/admin"
         onClick={() => close?.()}
-        className="mb-8 flex items-center gap-3"
+        className="mb-6 flex items-center gap-3"
       >
         <Image
           src="/alpha-logo.png"
@@ -50,7 +62,7 @@ export function AdminSidebar({ email }: { email?: string | null }) {
         </div>
       </Link>
 
-      <nav className="flex flex-1 flex-col gap-1">
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
         {links.map((l) => (
           <Link
             key={l.href}
@@ -58,7 +70,7 @@ export function AdminSidebar({ email }: { email?: string | null }) {
             onClick={() => close?.()}
             className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--color-muted)] hover:bg-[var(--color-accent-dim)] hover:text-[var(--color-accent)]"
           >
-            <l.icon className="h-4 w-4" />
+            <l.icon className="h-4 w-4 shrink-0" />
             {l.label}
           </Link>
         ))}
@@ -69,12 +81,6 @@ export function AdminSidebar({ email }: { email?: string | null }) {
           <p className="truncate text-xs text-[var(--color-muted)]">{email}</p>
         ) : null}
         <LogoutButton redirectTo="/login?role=admin" />
-        <a
-          href="https://www.alphasolutions.software"
-          className="block text-center text-xs text-[var(--color-accent)] hover:underline"
-        >
-          Marketing site
-        </a>
       </div>
     </aside>
   );

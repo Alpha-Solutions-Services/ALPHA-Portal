@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
   }
 
   let conversationId = parsed.conversationId;
+  let isNewConversation = false;
   if (!conversationId) {
     const { data, error } = await supabase
       .from("ai_conversations")
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Could not start chat" }, { status: 500 });
     }
     conversationId = data.id as string;
+    isNewConversation = true;
   }
 
   const { data: conv } = await supabase
@@ -106,6 +108,7 @@ export async function POST(req: NextRequest) {
       userMessage: parsed.message,
       assistantReply: "[Human agent mode — auto-reply paused]",
       conversationId,
+      isNewConversation,
     });
 
     return NextResponse.json({
@@ -123,8 +126,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Load CRM project + ticket context
+  // Load CRM project + ticket context + knowledge base
   let projectCtx = "(no projects yet)";
+  let knowledgeCtx = "(none yet)";
   if (service) {
     const { data: projects } = await service
       .from("portal_projects")
@@ -138,6 +142,20 @@ export async function POST(req: NextRequest) {
             `- ${p.title} (${p.status}, ${p.progress}%): ${(p.description || "").slice(0, 100)}`
         )
         .join("\n");
+    }
+    const { data: knowledge } = await service
+      .from("portal_knowledge")
+      .select("question, answer, category")
+      .eq("active", true)
+      .order("sort_order", { ascending: true })
+      .limit(40);
+    if (knowledge?.length) {
+      knowledgeCtx = knowledge
+        .map(
+          (k) =>
+            `Q [${k.category}]: ${k.question}\nA: ${String(k.answer).slice(0, 600)}`
+        )
+        .join("\n\n");
     }
   }
 
@@ -154,11 +172,15 @@ Never mention third-party AI vendors, model names, or that you are powered by an
 You help clients clarify requirements, suggest next steps, explain project status, and guide them to create support tickets when needed.
 Be warm, concise, and professional. Ask clarifying questions when requirements are vague.
 If they need a human, tell them a team member can join this same chat, or they can open a ticket from the Tickets tab.
+Prefer answers from the company knowledge base / SOPs below when relevant.
 Company: https://www.alphasolutions.software | Portal: https://portal.alphasolutions.software
 Contact: info@alphasolutions.software | WhatsApp +923494206922
 
 Client projects:
 ${projectCtx}
+
+Company knowledge base / SOPs:
+${knowledgeCtx}
 
 Internal coaching notes from the Alpha team (follow these carefully):
 ${training || "(none yet)"}`;
@@ -204,6 +226,7 @@ ${training || "(none yet)"}`;
     userMessage: parsed.message,
     assistantReply: reply,
     conversationId,
+    isNewConversation,
   });
 
   return NextResponse.json({
