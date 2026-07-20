@@ -17,8 +17,8 @@ export function PortalSidebar({
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard?tab=messages", label: "Messages", icon: MessageSquare },
-    { href: "/dashboard?tab=ai", label: "AI Assistant", icon: Sparkles },
+    { href: "/dashboard?tab=tickets", label: "Tickets", icon: MessageSquare },
+    { href: "/dashboard?tab=ai", label: "Assistant", icon: Sparkles },
   ];
 
   return (

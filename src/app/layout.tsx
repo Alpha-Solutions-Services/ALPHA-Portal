@@ -19,8 +19,13 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Alpha Portal — Client & Admin",
   description:
-    "Alpha Solutions client and admin portal for projects, files, and messaging.",
+    "Alpha Solutions client and admin portal for projects, tickets, and support.",
   robots: { index: false, follow: false },
+  icons: {
+    icon: [{ url: "/alpha-logo.png", type: "image/png" }],
+    apple: [{ url: "/alpha-logo.png" }],
+    shortcut: ["/alpha-logo.png"],
+  },
 };
 
 export default function RootLayout({

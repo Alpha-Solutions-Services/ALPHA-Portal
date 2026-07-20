@@ -46,6 +46,9 @@ Required:
 - `NEXT_PUBLIC_SITE_URL=https://www.alphasolutions.software`
 - `ADMIN_EMAILS`
 
+## CRM SQL (required for tickets + projects)
+- [ ] Run `supabase/portal-crm.sql` in Supabase SQL Editor
+
 ## Supabase (required for Google login)
 
 1. Open [Supabase Dashboard](https://supabase.com/dashboard) → your project → **Authentication**

@@ -26,7 +26,10 @@ export async function POST(req: NextRequest) {
 
   const groq = getGroq();
   if (!groq) {
-    return NextResponse.json({ error: "GROQ_API_KEY missing" }, { status: 503 });
+    return NextResponse.json(
+      { error: "Assistant drafting is temporarily unavailable." },
+      { status: 503 }
+    );
   }
 
   let parsed: z.infer<typeof schema>;

@@ -2,7 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Inbox, LayoutDashboard, MessageSquare } from "lucide-react";
+import {
+  FolderKanban,
+  Inbox,
+  LayoutDashboard,
+  MessageSquare,
+  Sparkles,
+  Ticket,
+} from "lucide-react";
 import { LogoutButton } from "@/components/portal/LogoutButton";
 import { useDashboardMobileNavClose } from "@/components/layout/ResponsiveDashboardShell";
 
@@ -11,8 +18,11 @@ export function AdminSidebar({ email }: { email?: string | null }) {
 
   const links = [
     { href: "/admin", label: "Overview", icon: LayoutDashboard },
+    { href: "/admin?tab=projects", label: "Projects", icon: FolderKanban },
+    { href: "/admin?tab=tickets", label: "Tickets", icon: Ticket },
+    { href: "/admin?tab=ai", label: "Assistant", icon: Sparkles },
     { href: "/admin?tab=inquiries", label: "Inquiries", icon: Inbox },
-    { href: "/admin?tab=clients", label: "Clients & chat", icon: MessageSquare },
+    { href: "/admin?tab=clients", label: "Chat", icon: MessageSquare },
   ];
 
   return (
@@ -36,7 +46,7 @@ export function AdminSidebar({ email }: { email?: string | null }) {
           >
             Alpha Portal
           </p>
-          <p className="text-[11px] text-[var(--color-muted)]">Admin</p>
+          <p className="text-[11px] text-[var(--color-muted)]">Admin CRM</p>
         </div>
       </Link>
 
