@@ -48,6 +48,7 @@ Required:
 
 ## CRM SQL (required for tickets + projects)
 - [ ] Run `supabase/portal-crm.sql` in Supabase SQL Editor
+- [ ] If CRM was already applied earlier, also run `supabase/portal-crm-project-comments.sql` (client comments RLS)
 
 ## Supabase (required for Google login)
 

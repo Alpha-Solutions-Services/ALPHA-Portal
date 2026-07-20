@@ -27,12 +27,30 @@ export function AdminProjectsPanel() {
   const load = useCallback(async () => {
     const res = await fetch("/api/projects");
     const j = (await res.json()) as { projects?: CrmProject[] };
-    setProjects(j.projects ?? []);
-  }, []);
+    const list = j.projects ?? [];
+    setProjects(list);
+    if (selected) {
+      const updated = list.find((p) => p.id === selected.id);
+      if (updated) setSelected(updated);
+    }
+  }, [selected]);
 
   useEffect(() => {
     void load();
-  }, [load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleProjectRefresh(project: CrmProject) {
+    setSelected(project);
+    setProjects((prev) => prev.map((p) => (p.id === project.id ? project : p)));
+  }
+
+  function handleDeleted() {
+    if (selected) {
+      setProjects((prev) => prev.filter((p) => p.id !== selected.id));
+    }
+    setSelected(null);
+  }
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -142,7 +160,9 @@ export function AdminProjectsPanel() {
               className="mt-1 w-full"
             />
           </label>
-          {error ? <p className="text-xs text-red-400 md:col-span-2">{error}</p> : null}
+          {error ? (
+            <p className="text-xs text-red-400 md:col-span-2">{error}</p>
+          ) : null}
           <button
             type="submit"
             disabled={busy}
@@ -157,29 +177,30 @@ export function AdminProjectsPanel() {
         </form>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {projects.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => setSelected(p)}
-            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 p-4 text-left hover:border-[var(--color-accent)]/40"
-          >
-            <p className="font-semibold text-[var(--color-text)]">{p.title}</p>
-            <p className="mt-1 text-xs text-[var(--color-muted)]">
-              {p.client_email || "No email"} · {p.progress}%
-            </p>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--color-border)]">
-              <div
-                className="h-full bg-[var(--color-accent)]"
-                style={{ width: `${p.progress}%` }}
-              />
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {selected ? (
+      {!selected ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {projects.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setSelected(p)}
+              className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 p-4 text-left hover:border-[var(--color-accent)]/40"
+            >
+              <p className="font-semibold text-[var(--color-text)]">{p.title}</p>
+              <p className="mt-1 text-xs text-[var(--color-muted)]">
+                {p.client_email || "No email"} · {p.progress}%
+                {p.status === "on_hold" ? " · Paused" : ""}
+              </p>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--color-border)]">
+                <div
+                  className="h-full bg-[var(--color-accent)]"
+                  style={{ width: `${p.progress}%` }}
+                />
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : (
         <div className="rounded-2xl border border-[var(--color-border)] p-2">
           <button
             type="button"
@@ -188,9 +209,14 @@ export function AdminProjectsPanel() {
           >
             ← Back to list
           </button>
-          <ProjectProgressView project={selected} />
+          <ProjectProgressView
+            project={selected}
+            mode="admin"
+            onRefresh={handleProjectRefresh}
+            onDeleted={handleDeleted}
+          />
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

@@ -44,8 +44,15 @@ create table if not exists public.portal_project_updates (
   author text,
   title text,
   body text not null,
+  is_client boolean not null default false,
+  sender_id uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now()
 );
+
+-- Existing installs: add comment columns if table already existed without them
+alter table public.portal_project_updates
+  add column if not exists is_client boolean not null default false,
+  add column if not exists sender_id uuid references auth.users (id) on delete set null;
 
 create index if not exists portal_projects_client_idx
   on public.portal_projects (client_user_id, updated_at desc);
@@ -137,6 +144,18 @@ create policy "portal_updates_select_own"
     )
   );
 
+drop policy if exists "portal_updates_insert_client" on public.portal_project_updates;
+create policy "portal_updates_insert_client"
+  on public.portal_project_updates for insert
+  with check (
+    is_client = true
+    and sender_id = auth.uid()
+    and exists (
+      select 1 from public.portal_projects p
+      where p.id = project_id and p.client_user_id = auth.uid()
+    )
+  );
+
 drop policy if exists "tickets_select_own" on public.support_tickets;
 create policy "tickets_select_own"
   on public.support_tickets for select
@@ -178,6 +197,6 @@ create policy "ticket_msgs_insert_own"
 grant select on public.portal_projects to authenticated;
 grant select on public.portal_project_milestones to authenticated;
 grant select on public.portal_project_team to authenticated;
-grant select on public.portal_project_updates to authenticated;
+grant select, insert on public.portal_project_updates to authenticated;
 grant select, insert, update on public.support_tickets to authenticated;
 grant select, insert on public.support_ticket_messages to authenticated;

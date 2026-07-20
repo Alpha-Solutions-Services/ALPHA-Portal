@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   CheckCircle2,
@@ -7,6 +8,12 @@ import {
   Clock3,
   ExternalLink,
   GitBranch,
+  Loader2,
+  MessageSquarePlus,
+  Pause,
+  Pencil,
+  Play,
+  Trash2,
   Users,
 } from "lucide-react";
 import clsx from "clsx";
@@ -33,6 +40,7 @@ export type CrmProject = {
     title?: string | null;
     body: string;
     author?: string | null;
+    is_client?: boolean;
     created_at?: string;
   }>;
 };
@@ -45,16 +53,264 @@ const statusLabel: Record<string, string> = {
   on_hold: "On hold",
 };
 
-export function ProjectProgressView({ project }: { project: CrmProject }) {
-  const milestones = [...(project.milestones || [])].sort(
-    (a, b) => 0
-  );
+type Props = {
+  project: CrmProject;
+  mode?: "client" | "admin";
+  onRefresh?: (project: CrmProject) => void;
+  onDeleted?: () => void;
+};
+
+export function ProjectProgressView({
+  project,
+  mode = "client",
+  onRefresh,
+  onDeleted,
+}: Props) {
+  const [comment, setComment] = useState("");
+  const [commentBusy, setCommentBusy] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: project.title,
+    description: project.description || "",
+    status: project.status,
+    progress: project.progress,
+    category: project.category || "",
+    projectUrl: project.project_url || "",
+    clientEmail: project.client_email || "",
+  });
+
+  const milestones = [...(project.milestones || [])];
   const updates = [...(project.updates || [])].sort((a, b) =>
     (b.created_at || "").localeCompare(a.created_at || "")
   );
 
+  async function postComment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!comment.trim()) return;
+    setCommentBusy(true);
+    setCommentError(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: comment.trim() }),
+      });
+      const j = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(j.error || "Comment failed");
+      setComment("");
+      const refreshRes = await fetch(`/api/projects/${project.id}`);
+      const refreshJ = (await refreshRes.json()) as { project?: CrmProject };
+      if (refreshJ.project) onRefresh?.(refreshJ.project);
+    } catch (err) {
+      setCommentError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setCommentBusy(false);
+    }
+  }
+
+  async function patchProject(body: Record<string, unknown>) {
+    setActionBusy(JSON.stringify(body));
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const j = (await res.json()) as { error?: string; project?: CrmProject };
+      if (!res.ok) throw new Error(j.error || "Update failed");
+      if (j.project) {
+        onRefresh?.(j.project);
+        setEditForm({
+          title: j.project.title,
+          description: j.project.description || "",
+          status: j.project.status,
+          progress: j.project.progress,
+          category: j.project.category || "",
+          projectUrl: j.project.project_url || "",
+          clientEmail: j.project.client_email || "",
+        });
+      }
+      setEditing(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Update failed");
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  async function deleteProject() {
+    if (!confirm(`Delete "${project.title}"? This cannot be undone.`)) return;
+    setActionBusy("delete");
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
+      const j = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(j.error || "Delete failed");
+      onDeleted?.();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  const isPaused = project.status === "on_hold";
+
   return (
     <div className="space-y-8">
+      {mode === "admin" ? (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setEditing((v) => !v)}
+            className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] hover:border-[var(--color-accent)]/50"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </button>
+          {isPaused ? (
+            <button
+              type="button"
+              disabled={!!actionBusy}
+              onClick={() => void patchProject({ action: "resume" })}
+              className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-50"
+            >
+              {actionBusy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Play className="h-3.5 w-3.5" />
+              )}
+              Resume
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={!!actionBusy}
+              onClick={() => void patchProject({ action: "pause" })}
+              className="inline-flex items-center gap-1 rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/10 disabled:opacity-50"
+            >
+              {actionBusy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Pause className="h-3.5 w-3.5" />
+              )}
+              Pause
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={!!actionBusy}
+            onClick={() => void deleteProject()}
+            className="inline-flex items-center gap-1 rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+          >
+            {actionBusy === "delete" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
+            Delete
+          </button>
+        </div>
+      ) : null}
+
+      {mode === "admin" && editing ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void patchProject({
+              title: editForm.title,
+              description: editForm.description || null,
+              status: editForm.status,
+              progress: editForm.progress,
+              category: editForm.category || null,
+              projectUrl: editForm.projectUrl || null,
+              clientEmail: editForm.clientEmail,
+            });
+          }}
+          className="grid gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 p-5 md:grid-cols-2"
+        >
+          <input
+            required
+            value={editForm.title}
+            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm md:col-span-2"
+            placeholder="Title"
+          />
+          <input
+            type="email"
+            value={editForm.clientEmail}
+            onChange={(e) =>
+              setEditForm({ ...editForm, clientEmail: e.target.value })
+            }
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
+            placeholder="Client email"
+          />
+          <select
+            value={editForm.status}
+            onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
+          >
+            <option value="planning">Planning</option>
+            <option value="in_progress">In progress</option>
+            <option value="review">Review</option>
+            <option value="completed">Completed</option>
+            <option value="on_hold">On hold</option>
+          </select>
+          <input
+            value={editForm.category}
+            onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
+            placeholder="Category"
+          />
+          <input
+            value={editForm.projectUrl}
+            onChange={(e) =>
+              setEditForm({ ...editForm, projectUrl: e.target.value })
+            }
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm md:col-span-2"
+            placeholder="Live site URL"
+          />
+          <textarea
+            value={editForm.description}
+            onChange={(e) =>
+              setEditForm({ ...editForm, description: e.target.value })
+            }
+            rows={3}
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm md:col-span-2"
+            placeholder="Description"
+          />
+          <label className="text-sm text-[var(--color-muted)] md:col-span-2">
+            Progress: {editForm.progress}%
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={editForm.progress}
+              onChange={(e) =>
+                setEditForm({ ...editForm, progress: Number(e.target.value) })
+              }
+              className="mt-1 w-full"
+            />
+          </label>
+          <div className="flex gap-2 md:col-span-2">
+            <button
+              type="submit"
+              disabled={!!actionBusy}
+              className="rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#05080f] disabled:opacity-50"
+            >
+              Save changes
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-muted)]"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : null}
+
       <motion.header
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -77,7 +333,14 @@ export function ProjectProgressView({ project }: { project: CrmProject }) {
               </p>
             ) : null}
           </div>
-          <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-accent)]">
+          <span
+            className={clsx(
+              "rounded-full border px-3 py-1 text-xs font-semibold",
+              project.status === "on_hold"
+                ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-accent)]"
+            )}
+          >
             {statusLabel[project.status] || project.status}
           </span>
         </div>
@@ -192,22 +455,30 @@ export function ProjectProgressView({ project }: { project: CrmProject }) {
       </div>
 
       <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 p-5">
-        <h3 className="mb-4 text-sm font-semibold text-[var(--color-text)]">
-          Activity
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--color-text)]">
+          <MessageSquarePlus className="h-4 w-4 text-[var(--color-accent)]" />
+          Activity & comments
         </h3>
-        <ol className="relative space-y-4 border-l border-[var(--color-border)] pl-5">
+        <ol className="relative mb-6 space-y-4 border-l border-[var(--color-border)] pl-5">
           {updates.length === 0 ? (
             <li className="text-sm text-[var(--color-muted)]">No updates yet.</li>
           ) : (
             updates.map((u, i) => (
               <li key={u.id || i} className="relative">
-                <span className="absolute -left-[1.4rem] top-1 h-2.5 w-2.5 rounded-full bg-[var(--color-accent)]" />
+                <span
+                  className={clsx(
+                    "absolute -left-[1.4rem] top-1 h-2.5 w-2.5 rounded-full",
+                    u.is_client ? "bg-emerald-400" : "bg-[var(--color-accent)]"
+                  )}
+                />
                 <p className="text-sm font-medium text-[var(--color-text)]">
                   {u.title || "Update"}
                 </p>
-                <p className="mt-1 text-sm text-[var(--color-muted)]">{u.body}</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--color-muted)]">
+                  {u.body}
+                </p>
                 <p className="mt-1 text-[11px] text-[var(--color-muted)]">
-                  {u.author || "Team"}
+                  {u.author || (u.is_client ? "You" : "Team")}
                   {u.created_at
                     ? ` · ${new Date(u.created_at).toLocaleString()}`
                     : ""}
@@ -216,6 +487,35 @@ export function ProjectProgressView({ project }: { project: CrmProject }) {
             ))
           )}
         </ol>
+
+        <form onSubmit={(e) => void postComment(e)} className="space-y-2">
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            rows={3}
+            placeholder={
+              mode === "admin"
+                ? "Post an update or comment for the client…"
+                : "Ask a question or leave a comment for the team…"
+            }
+            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)]"
+          />
+          {commentError ? (
+            <p className="text-xs text-red-400">{commentError}</p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={commentBusy || !comment.trim()}
+            className="inline-flex items-center gap-1 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#05080f] disabled:opacity-50"
+          >
+            {commentBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <MessageSquarePlus className="h-4 w-4" />
+            )}
+            Post comment
+          </button>
+        </form>
       </section>
     </div>
   );

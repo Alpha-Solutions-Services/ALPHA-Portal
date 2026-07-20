@@ -278,7 +278,16 @@ export function PortalDashboardClient({
               >
                 ← All projects
               </button>
-              <ProjectProgressView project={selectedProject} />
+              <ProjectProgressView
+                project={selectedProject}
+                mode="client"
+                onRefresh={(p) => {
+                  setSelectedProject(p);
+                  setCrmProjects((prev) =>
+                    prev.map((x) => (x.id === p.id ? p : x))
+                  );
+                }}
+              />
             </div>
           ) : (
             <div className="space-y-6">

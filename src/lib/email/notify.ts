@@ -181,3 +181,63 @@ export async function emailHumanJoined(opts: {
       <p><a href="${portal}/dashboard?tab=ai" style="color:#38a3ff;">Return to chat</a></p>`,
   });
 }
+
+export async function emailProjectComment(opts: {
+  projectTitle: string;
+  projectId: string;
+  clientEmail?: string | null;
+  author: string;
+  body: string;
+  fromAdmin: boolean;
+}) {
+  const portal = getPortalUrl();
+  const preview = escapeHtml(opts.body.slice(0, 400));
+  const link = `${portal}/dashboard?tab=projects&project=${opts.projectId}`;
+  const adminLink = `${portal}/admin?tab=projects`;
+
+  if (opts.fromAdmin && opts.clientEmail) {
+    await notifyUser({
+      email: opts.clientEmail,
+      subject: `New comment on ${opts.projectTitle}`,
+      title: "Project comment",
+      html: `<p><strong>${escapeHtml(opts.author)}</strong> commented on your project.</p>
+        <blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #38a3ff;background:#0f1829;">${preview}</blockquote>
+        <p><a href="${link}" style="color:#38a3ff;">View project</a></p>`,
+    });
+  }
+  if (!opts.fromAdmin) {
+    await notifyOps({
+      subject: `Client comment on ${opts.projectTitle}`,
+      title: "Project comment",
+      html: `<p><strong>${escapeHtml(opts.author)}</strong> commented on a project.</p>
+        <blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #38a3ff;background:#0f1829;">${preview}</blockquote>
+        <p><a href="${adminLink}" style="color:#38a3ff;">Open admin projects</a></p>`,
+    });
+  }
+}
+
+export async function emailProjectStatusChange(opts: {
+  clientEmail: string;
+  projectTitle: string;
+  projectId: string;
+  status: string;
+  note: string;
+}) {
+  const portal = getPortalUrl();
+  const statusLabels: Record<string, string> = {
+    planning: "Planning",
+    in_progress: "In progress",
+    review: "In review",
+    completed: "Completed",
+    on_hold: "On hold",
+  };
+  await notifyUser({
+    email: opts.clientEmail,
+    subject: `Project update: ${opts.projectTitle}`,
+    title: "Project status",
+    html: `<p>Your project <strong>${escapeHtml(opts.projectTitle)}</strong> was updated.</p>
+      <p>Status: <strong>${escapeHtml(statusLabels[opts.status] || opts.status)}</strong></p>
+      <p>${escapeHtml(opts.note)}</p>
+      <p><a href="${portal}/dashboard?tab=projects&project=${opts.projectId}" style="color:#38a3ff;">View project</a></p>`,
+  });
+}
