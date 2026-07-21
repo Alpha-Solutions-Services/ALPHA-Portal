@@ -12,6 +12,7 @@ import {
   Inbox,
   LayoutDashboard,
   MessageSquare,
+  ScrollText,
   Sparkles,
   Ticket,
   Users,
@@ -32,7 +33,8 @@ export function AdminSidebar({ email }: { email?: string | null }) {
     { href: "/admin?tab=ai", label: "Assistant", icon: Sparkles },
     { href: "/admin?tab=knowledge", label: "Knowledge", icon: BookOpen },
     { href: "/admin?tab=reports", label: "Reports", icon: BarChart3 },
-    { href: "/admin?tab=staff", label: "Staff", icon: Users },
+    { href: "/admin/staff", label: "Staff", icon: Users },
+    { href: "/admin/audit", label: "Audit", icon: ScrollText },
     { href: "/admin?tab=inquiries", label: "Inquiries", icon: Inbox },
     { href: "/admin?tab=clients", label: "Chat", icon: MessageSquare },
   ];

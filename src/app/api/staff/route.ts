@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isOwnerUser, isPortalStaff, resolveStaffRole } from "@/lib/admin-auth";
+import { logAuditEvent } from "@/lib/portal/audit";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -77,6 +78,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Save failed" }, { status: 500 });
   }
 
+  logAuditEvent({
+    actor: session.user,
+    action: "staff.upsert",
+    targetType: "portal_staff",
+    targetId: data.id as string,
+    metadata: { email: parsed.email, role: parsed.role || "staff" },
+  });
+
   return NextResponse.json({
     ok: true,
     staff: data,
@@ -95,5 +104,13 @@ export async function DELETE(req: NextRequest) {
   const db = getServiceRoleClient();
   if (!db) return NextResponse.json({ error: "Not configured" }, { status: 503 });
   await db.from("portal_staff").delete().eq("id", id);
+
+  logAuditEvent({
+    actor: session.user,
+    action: "staff.delete",
+    targetType: "portal_staff",
+    targetId: id,
+  });
+
   return NextResponse.json({ ok: true });
 }

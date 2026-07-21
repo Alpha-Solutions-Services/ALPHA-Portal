@@ -31,7 +31,25 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+  const isApi = pathname.startsWith("/api/");
+  const isProtectedPage =
+    pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
+
+  // API routes self-check auth and return JSON — do not redirect here.
+  if (!isApi && isProtectedPage && !user) {
+    const login = new URL("/login", request.url);
+    if (pathname.startsWith("/admin")) {
+      login.searchParams.set("role", "admin");
+    }
+    login.searchParams.set("next", pathname);
+    return NextResponse.redirect(login);
+  }
+
   return response;
 }
 

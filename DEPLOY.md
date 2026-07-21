@@ -51,6 +51,8 @@ Required:
 - [ ] If CRM was already applied earlier, also run `supabase/portal-crm-project-comments.sql` (client comments RLS)
 - [ ] Run `supabase/portal-files.sql` for client document uploads (bucket + table)
 - [ ] Run `supabase/portal-system.sql` for pipeline, quotes, bookings, contracts, notifications, knowledge, staff roles, milestone approvals
+- [ ] Run `supabase/ai-rate-limits.sql` for persistent AI chat rate limiting
+- [ ] Run `supabase/audit-events.sql` for staff action audit log
 
 Optional env:
 - `OWNER_EMAILS` — owners see revenue and manage staff

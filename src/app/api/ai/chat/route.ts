@@ -2,6 +2,7 @@ import Groq from "groq-sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { emailAiChat } from "@/lib/email/notify";
+import { checkAndIncrementRateLimit } from "@/lib/portal/rate-limit";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
@@ -10,20 +11,6 @@ const schema = z.object({
   message: z.string().min(1).max(4000),
   conversationId: z.string().uuid().optional(),
 });
-
-const rateMap = new Map<string, { count: number; reset: number }>();
-
-function rateLimit(userId: string, max = 40) {
-  const now = Date.now();
-  const row = rateMap.get(userId);
-  if (!row || now > row.reset) {
-    rateMap.set(userId, { count: 1, reset: now + 60_000 });
-    return true;
-  }
-  if (row.count >= max) return false;
-  row.count += 1;
-  return true;
-}
 
 function getGroq() {
   const key = process.env.GROQ_API_KEY?.trim();
@@ -34,7 +21,7 @@ function getGroq() {
 export async function POST(req: NextRequest) {
   const session = await getSessionUser();
   if ("error" in session) return session.error;
-  if (!rateLimit(session.user.id)) {
+  if (!(await checkAndIncrementRateLimit(session.user.id))) {
     return NextResponse.json({ error: "Too many messages — try again shortly." }, { status: 429 });
   }
 

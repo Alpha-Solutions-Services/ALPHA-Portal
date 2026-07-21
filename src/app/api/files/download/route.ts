@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminUser } from "@/lib/admin-auth";
+import { logAuditEvent } from "@/lib/portal/audit";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { createClient } from "@/lib/supabase/server";
@@ -32,6 +33,14 @@ export async function GET(req: NextRequest) {
   if (error || !data?.signedUrl) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  logAuditEvent({
+    actor: session.user,
+    action: "file.download",
+    targetType: "portal_file",
+    targetId: path,
+    metadata: { admin },
+  });
 
   return NextResponse.redirect(data.signedUrl);
 }

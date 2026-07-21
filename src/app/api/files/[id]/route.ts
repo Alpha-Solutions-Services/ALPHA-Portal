@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminUser } from "@/lib/admin-auth";
+import { logAuditEvent } from "@/lib/portal/audit";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { createClient } from "@/lib/supabase/server";
@@ -32,6 +33,18 @@ export async function DELETE(
   } else {
     await supabase.from("portal_files").delete().eq("id", params.id);
   }
+
+  logAuditEvent({
+    actor: session.user,
+    action: "file.delete",
+    targetType: "portal_file",
+    targetId: params.id,
+    metadata: {
+      file_name: row.file_name,
+      storage_path: row.storage_path,
+      admin,
+    },
+  });
 
   return NextResponse.json({ ok: true });
 }

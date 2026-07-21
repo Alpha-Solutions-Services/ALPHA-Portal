@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isPortalStaff } from "@/lib/admin-auth";
+import { logAuditEvent } from "@/lib/portal/audit";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { createNotification, findUserIdByEmail } from "@/lib/notifications";
@@ -186,6 +187,13 @@ export async function PATCH(req: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", parsed.id);
+    logAuditEvent({
+      actor: session.user,
+      action: "contract.deposit_status",
+      targetType: "portal_contract",
+      targetId: parsed.id,
+      metadata: { deposit_status: parsed.depositStatus },
+    });
     if (contract.client_user_id) {
       await createNotification({
         userId: contract.client_user_id as string,
@@ -221,6 +229,13 @@ export async function PATCH(req: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", parsed.id);
+    logAuditEvent({
+      actor: session.user,
+      action: "contract.sign",
+      targetType: "portal_contract",
+      targetId: parsed.id,
+      metadata: { signed_name: parsed.signedName },
+    });
     void notifyOps({
       subject: `Contract signed: ${contract.title}`,
       title: "Contract signed",
@@ -234,6 +249,12 @@ export async function PATCH(req: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", parsed.id);
+    logAuditEvent({
+      actor: session.user,
+      action: "contract.decline",
+      targetType: "portal_contract",
+      targetId: parsed.id,
+    });
   }
 
   return NextResponse.json({ ok: true });

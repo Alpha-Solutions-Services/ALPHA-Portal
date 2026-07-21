@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isOwnerUser, isPortalStaff } from "@/lib/admin-auth";
+import { logAuditEvent } from "@/lib/portal/audit";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import {
@@ -168,6 +169,17 @@ export async function PATCH(req: NextRequest) {
   if (error || !data) {
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
+
+  logAuditEvent({
+    actor: auth.session.user,
+    action: "deal.update",
+    targetType: "portal_deal",
+    targetId: parsed.id,
+    metadata: {
+      stage: parsed.stage ?? data.stage,
+      title: data.title,
+    },
+  });
 
   if (parsed.stage === "won" || parsed.stage === "lost") {
     void notifyOpsInApp({
