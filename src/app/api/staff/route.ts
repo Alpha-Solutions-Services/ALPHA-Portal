@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { isOwnerUser, isPortalStaff, resolveStaffRole } from "@/lib/admin-auth";
+import {
+  isOwnerUserAsync,
+  isPortalStaff,
+  resolveStaffRole,
+} from "@/lib/admin-auth";
+import { notifyUser, escapeHtml } from "@/lib/email/notify";
 import { logAuditEvent } from "@/lib/portal/audit";
 import { getSessionUser } from "@/lib/portal/require-session";
+import { getPortalUrl } from "@/lib/supabase/env";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 
 export async function GET() {
@@ -25,7 +31,7 @@ export async function GET() {
     me: {
       email: session.user.email,
       role,
-      isOwner: isOwnerUser(session.user),
+      isOwner: await isOwnerUserAsync(session.user),
     },
     staff: data ?? [],
   });
@@ -36,12 +42,13 @@ const schema = z.object({
   role: z.enum(["owner", "staff"]).optional(),
   displayName: z.string().max(120).optional(),
   active: z.boolean().optional(),
+  sendInvite: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
   const session = await getSessionUser();
   if ("error" in session) return session.error;
-  if (!isOwnerUser(session.user)) {
+  if (!(await isOwnerUserAsync(session.user))) {
     return NextResponse.json(
       { error: "Only owners can manage staff" },
       { status: 403 }
@@ -58,11 +65,24 @@ export async function POST(req: NextRequest) {
   const db = getServiceRoleClient();
   if (!db) return NextResponse.json({ error: "Not configured" }, { status: 503 });
 
+  const email = parsed.email.toLowerCase();
+  const portal = getPortalUrl();
+
+  if (parsed.sendInvite !== false) {
+    const { error: inviteErr } = await db.auth.admin.inviteUserByEmail(email, {
+      redirectTo: `${portal}/auth/callback`,
+      data: { full_name: parsed.displayName || undefined },
+    });
+    if (inviteErr && !/already|registered|exists/i.test(inviteErr.message)) {
+      console.warn("[staff invite]", inviteErr.message);
+    }
+  }
+
   const { data, error } = await db
     .from("portal_staff")
     .upsert(
       {
-        email: parsed.email.toLowerCase(),
+        email,
         role: parsed.role || "staff",
         display_name: parsed.displayName || null,
         active: parsed.active !== false,
@@ -83,20 +103,24 @@ export async function POST(req: NextRequest) {
     action: "staff.upsert",
     targetType: "portal_staff",
     targetId: data.id as string,
-    metadata: { email: parsed.email, role: parsed.role || "staff" },
+    metadata: { email, role: parsed.role || "staff" },
   });
 
-  return NextResponse.json({
-    ok: true,
-    staff: data,
-    hint: "Also add this email to ADMIN_EMAILS in Vercel for full API access until next deploy sync.",
+  void notifyUser({
+    email,
+    subject: "Alpha Portal admin access",
+    title: "Staff invite",
+    html: `<p>You've been granted <strong>${escapeHtml(parsed.role || "staff")}</strong> access to the Alpha Portal admin.</p>
+      <p><a href="${portal}/login?role=admin" style="display:inline-block;padding:10px 18px;background:#38a3ff;color:#05080f;border-radius:8px;text-decoration:none;font-weight:600;">Open admin login</a></p>`,
   });
+
+  return NextResponse.json({ ok: true, staff: data });
 }
 
 export async function DELETE(req: NextRequest) {
   const session = await getSessionUser();
   if ("error" in session) return session.error;
-  if (!isOwnerUser(session.user)) {
+  if (!(await isOwnerUserAsync(session.user))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const id = req.nextUrl.searchParams.get("id");

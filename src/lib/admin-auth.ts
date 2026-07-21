@@ -35,13 +35,28 @@ export function isOwnerUser(user: User | null): boolean {
   return new Set(getOwnerAllowlist()).has(normalize(user.email));
 }
 
+/** Owner via env allowlist OR active portal_staff.role = owner */
+export async function isOwnerUserAsync(user: User | null): Promise<boolean> {
+  if (!user?.email) return false;
+  if (isOwnerUser(user)) return true;
+  const db = getServiceRoleClient();
+  if (!db) return false;
+  const { data } = await db
+    .from("portal_staff")
+    .select("role, active")
+    .ilike("email", user.email)
+    .eq("active", true)
+    .eq("role", "owner")
+    .maybeSingle();
+  return Boolean(data);
+}
+
 export async function resolveStaffRole(
   user: User | null
 ): Promise<StaffRole> {
   if (!user?.email) return null;
-  if (isOwnerUser(user)) return "owner";
+  if (await isOwnerUserAsync(user)) return "owner";
   if (!isAllowedAdminEmail(user.email)) {
-    // Check DB staff list (allows inviting staff without redeploy)
     const db = getServiceRoleClient();
     if (!db) return null;
     const { data } = await db
@@ -53,7 +68,6 @@ export async function resolveStaffRole(
     if (!data) return null;
     return data.role === "owner" ? "owner" : "staff";
   }
-  // On ADMIN_EMAILS but not owner → staff
   return "staff";
 }
 

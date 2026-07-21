@@ -888,100 +888,25 @@ export function AdminReportsPanel() {
 }
 
 export function AdminStaffPanel() {
-  const { toast } = useUi();
-  const [me, setMe] = useState<{ role?: string; isOwner?: boolean; email?: string } | null>(null);
-  const [staff, setStaff] = useState<Array<Record<string, unknown>>>([]);
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState("staff");
-
-  const load = useCallback(async () => {
-    const res = await fetch("/api/staff");
-    const j = await res.json();
-    setMe(j.me);
-    setStaff(j.staff ?? []);
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  async function invite(e: React.FormEvent) {
-    e.preventDefault();
-    const res = await fetch("/api/staff", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, role }),
-    });
-    const j = await res.json();
-    if (!res.ok) {
-      toast({ kind: "error", title: j.error || "Failed" });
-      return;
-    }
-    toast({
-      kind: "success",
-      title: "Staff saved",
-      message: j.hint,
-    });
-    setEmail("");
-    await load();
-  }
-
   return (
-    <div className="space-y-4">
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 p-6">
       <div className="flex items-center gap-2">
         <Users className="h-5 w-5 text-[var(--color-accent)]" />
         <h2 className="text-lg font-semibold text-[var(--color-text)]">
-          Roles & staff
+          Users & staff
         </h2>
       </div>
-      <p className="text-sm text-[var(--color-muted)]">
-        You: {me?.email} · role <strong>{me?.role || "—"}</strong>
-        {me?.isOwner ? " (owner)" : ""}
+      <p className="mt-2 text-sm text-[var(--color-muted)]">
+        Owners can invite staff, list every Auth user, and add / edit / ban /
+        delete accounts from the dedicated Users page.
       </p>
-      {me?.isOwner ? (
-        <form
-          onSubmit={(e) => void invite(e)}
-          className="flex flex-col gap-2 sm:flex-row"
-        >
-          <input
-            required
-            type="email"
-            placeholder="staff@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
-          />
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
-          >
-            <option value="staff">staff</option>
-            <option value="owner">owner</option>
-          </select>
-          <button
-            type="submit"
-            className="rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#05080f]"
-          >
-            Add
-          </button>
-        </form>
-      ) : (
-        <p className="text-sm text-[var(--color-muted)]">
-          Only owners can invite staff. Set OWNER_EMAILS in env.
-        </p>
-      )}
-      <ul className="space-y-2">
-        {staff.map((s) => (
-          <li
-            key={String(s.id)}
-            className="flex justify-between rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
-          >
-            <span className="text-[var(--color-text)]">{String(s.email)}</span>
-            <span className="text-[var(--color-muted)]">{String(s.role)}</span>
-          </li>
-        ))}
-      </ul>
+      <a
+        href="/admin/staff"
+        className="mt-4 inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#05080f]"
+      >
+        Open user management
+      </a>
     </div>
   );
 }
+
