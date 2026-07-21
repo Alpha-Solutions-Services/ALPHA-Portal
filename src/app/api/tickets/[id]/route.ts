@@ -4,7 +4,7 @@ import { emailTicketReply } from "@/lib/email/notify";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
-import { isAdminUser } from "@/lib/admin-auth";
+import { isPortalStaff } from "@/lib/admin-auth";
 
 const postSchema = z.object({
   body: z.string().min(1).max(8000),
@@ -17,7 +17,7 @@ export async function GET(
   const session = await getSessionUser();
   if ("error" in session) return session.error;
 
-  const admin = isAdminUser(session.user);
+  const admin = await isPortalStaff(session.user);
   const db = admin ? getServiceRoleClient() : await createClient();
   if (!db) return NextResponse.json({ error: "Not configured" }, { status: 503 });
 
@@ -52,7 +52,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const admin = isAdminUser(session.user);
+  const admin = await isPortalStaff(session.user);
   const db = admin ? getServiceRoleClient() : await createClient();
   if (!db) return NextResponse.json({ error: "Not configured" }, { status: 503 });
 
@@ -109,7 +109,7 @@ export async function PATCH(
 ) {
   const session = await getSessionUser();
   if ("error" in session) return session.error;
-  if (!isAdminUser(session.user)) {
+  if (!(await isPortalStaff(session.user))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const db = getServiceRoleClient();

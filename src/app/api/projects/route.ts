@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { isAdminUser } from "@/lib/admin-auth";
+import { isPortalStaff } from "@/lib/admin-auth";
 import { emailProjectAssigned } from "@/lib/email/notify";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
@@ -10,7 +10,7 @@ export async function GET() {
   const session = await getSessionUser();
   if ("error" in session) return session.error;
 
-  const admin = isAdminUser(session.user);
+  const admin = await isPortalStaff(session.user);
   if (admin) {
     const db = getServiceRoleClient();
     if (!db) return NextResponse.json({ projects: [] });
@@ -65,7 +65,7 @@ const createSchema = z.object({
 export async function POST(req: NextRequest) {
   const session = await getSessionUser();
   if ("error" in session) return session.error;
-  if (!isAdminUser(session.user)) {
+  if (!(await isPortalStaff(session.user))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

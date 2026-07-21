@@ -888,24 +888,148 @@ export function AdminReportsPanel() {
 }
 
 export function AdminStaffPanel() {
+  const { toast } = useUi();
+  const [me, setMe] = useState<{
+    role?: string;
+    isOwner?: boolean;
+    email?: string;
+  } | null>(null);
+  const [staff, setStaff] = useState<Array<Record<string, unknown>>>([]);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("staff");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    const res = await fetch("/api/staff");
+    const j = await res.json();
+    if (!res.ok) {
+      toast({ kind: "error", title: j.error || "Could not load team" });
+      return;
+    }
+    setMe(j.me);
+    setStaff(j.staff ?? []);
+  }, [toast]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function invite(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const res = await fetch("/api/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, role, sendInvite: true }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        toast({ kind: "error", title: j.error || "Invite failed" });
+        return;
+      }
+      toast({
+        kind: "success",
+        title: "Staff invited",
+        message: `${email} can sign in at Admin login`,
+      });
+      setEmail("");
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 p-6">
-      <div className="flex items-center gap-2">
-        <Users className="h-5 w-5 text-[var(--color-accent)]" />
-        <h2 className="text-lg font-semibold text-[var(--color-text)]">
-          Users & staff
-        </h2>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-[var(--color-accent)]" />
+            <h2 className="text-lg font-semibold text-[var(--color-text)]">
+              Team
+            </h2>
+          </div>
+          <p className="mt-1 text-sm text-[var(--color-muted)]">
+            You: {me?.email || "—"} ·{" "}
+            <span className="text-[var(--color-text)]">
+              {me?.role || "staff"}
+            </span>
+            {me?.isOwner ? " (owner)" : ""}
+          </p>
+        </div>
+        {me?.isOwner ? (
+          <a
+            href="/admin/staff"
+            className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-accent)] hover:bg-[var(--color-accent-dim)]"
+          >
+            Full user management
+          </a>
+        ) : null}
       </div>
-      <p className="mt-2 text-sm text-[var(--color-muted)]">
-        Owners can invite staff, list every Auth user, and add / edit / ban /
-        delete accounts from the dedicated Users page.
-      </p>
-      <a
-        href="/admin/staff"
-        className="mt-4 inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#05080f]"
-      >
-        Open user management
-      </a>
+
+      {me?.isOwner ? (
+        <form
+          onSubmit={(e) => void invite(e)}
+          className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 p-4 sm:flex-row"
+        >
+          <input
+            required
+            type="email"
+            placeholder="staff@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
+          />
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
+          >
+            <option value="staff">staff</option>
+            <option value="owner">owner</option>
+          </select>
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#05080f] disabled:opacity-50"
+          >
+            Invite
+          </button>
+        </form>
+      ) : (
+        <p className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/20 px-4 py-3 text-sm text-[var(--color-muted)]">
+          Staff can use Pipeline, Quotes, Projects, Tickets, and Chat. Only
+          owners can invite teammates or manage all Auth users.
+        </p>
+      )}
+
+      <ul className="space-y-2">
+        {staff.map((s) => (
+          <li
+            key={String(s.id)}
+            className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-[var(--color-text)]">
+                {String(s.display_name || s.email)}
+              </p>
+              {s.display_name ? (
+                <p className="truncate text-xs text-[var(--color-muted)]">
+                  {String(s.email)}
+                </p>
+              ) : null}
+            </div>
+            <span className="shrink-0 rounded-md bg-[var(--color-accent-dim)] px-2 py-0.5 text-xs text-[var(--color-accent)]">
+              {String(s.role)}
+              {s.active === false ? " · off" : ""}
+            </span>
+          </li>
+        ))}
+        {staff.length === 0 ? (
+          <li className="text-sm text-[var(--color-muted)]">No staff yet.</li>
+        ) : null}
+      </ul>
     </div>
   );
 }

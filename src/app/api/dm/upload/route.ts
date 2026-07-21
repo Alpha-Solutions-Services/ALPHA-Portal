@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAdminUser } from "@/lib/admin-auth";
+import { isPortalStaff } from "@/lib/admin-auth";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Max 5MB" }, { status: 400 });
   }
 
-  const admin = isAdminUser(session.user);
+  const admin = await isPortalStaff(session.user);
   const threadId = String(form.get("threadId") || "");
 
   let folderUserId = session.user.id;

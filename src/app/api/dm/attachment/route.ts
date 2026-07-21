@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAdminUser } from "@/lib/admin-auth";
+import { isPortalStaff } from "@/lib/admin-auth";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { createClient } from "@/lib/supabase/server";
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing path" }, { status: 400 });
   }
 
-  const admin = isAdminUser(session.user);
+  const admin = await isPortalStaff(session.user);
   const folder = path.split("/")[0];
   if (!admin && folder !== session.user.id) {
     // Client may only access own folder OR paths on their thread (admin uploads use client folder)

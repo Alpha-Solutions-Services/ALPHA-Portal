@@ -4,7 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { isAllowedAdminEmail } from "@/lib/admin-allowlist";
 
 function authErrorMessage(reason: string | null): string {
   if (!reason) {
@@ -12,7 +11,7 @@ function authErrorMessage(reason: string | null): string {
   }
   const decoded = decodeURIComponent(reason);
   if (decoded === "not_admin") {
-    return "This Google account is not on the admin allowlist.";
+    return "This Google account is not authorized for admin access.";
   }
   if (decoded === "missing_code") {
     return "Sign-in was interrupted (missing auth code). Try Continue with Google again.";
@@ -58,13 +57,11 @@ export function LoginForm({ defaultAdmin = false }: { defaultAdmin?: boolean }) 
         if (err) throw err;
       }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const isAdmin = isAllowedAdminEmail(user?.email);
+      const staffRes = await fetch("/api/staff");
+      const isAdmin = staffRes.ok;
       if (defaultAdmin && !isAdmin) {
         await supabase.auth.signOut();
-        throw new Error("This account is not on the admin allowlist");
+        throw new Error("This account is not authorized for admin access");
       }
       window.location.href = isAdmin ? "/admin" : "/dashboard";
     } catch (err) {

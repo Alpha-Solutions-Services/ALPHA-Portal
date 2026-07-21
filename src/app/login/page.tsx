@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { isAdminUser } from "@/lib/admin-auth";
+import { isPortalStaff } from "@/lib/admin-auth";
 import { getPortalUser } from "@/lib/portal/auth";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export default async function LoginPage({
 }) {
   const user = await getPortalUser();
   if (user) {
-    redirect(isAdminUser(user) ? "/admin" : "/dashboard");
+    redirect((await isPortalStaff(user)) ? "/admin" : "/dashboard");
   }
   const isAdmin = searchParams.role === "admin";
 

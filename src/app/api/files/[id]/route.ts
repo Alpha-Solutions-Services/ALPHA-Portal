@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAdminUser } from "@/lib/admin-auth";
+import { isPortalStaff } from "@/lib/admin-auth";
 import { logAuditEvent } from "@/lib/portal/audit";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
@@ -12,7 +12,7 @@ export async function DELETE(
   const session = await getSessionUser();
   if ("error" in session) return session.error;
 
-  const admin = isAdminUser(session.user);
+  const admin = await isPortalStaff(session.user);
   const service = getServiceRoleClient();
   const supabase = await createClient();
   if (!supabase) {

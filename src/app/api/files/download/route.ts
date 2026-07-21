@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAdminUser } from "@/lib/admin-auth";
+import { isPortalStaff } from "@/lib/admin-auth";
 import { logAuditEvent } from "@/lib/portal/audit";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing path" }, { status: 400 });
   }
 
-  const admin = isAdminUser(session.user);
+  const admin = await isPortalStaff(session.user);
   const owns = path.startsWith(`${session.user.id}/`);
   if (!admin && !owns) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

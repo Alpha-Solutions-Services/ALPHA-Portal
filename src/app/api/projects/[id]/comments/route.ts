@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { isAdminUser } from "@/lib/admin-auth";
+import { isPortalStaff } from "@/lib/admin-auth";
 import { emailProjectComment } from "@/lib/email/notify";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
@@ -25,7 +25,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const admin = isAdminUser(session.user);
+  const admin = await isPortalStaff(session.user);
   const db = admin ? getServiceRoleClient() : await createClient();
   if (!db) return NextResponse.json({ error: "Not configured" }, { status: 503 });
 

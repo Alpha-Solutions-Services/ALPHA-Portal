@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isAllowedAdminEmail } from "@/lib/admin-allowlist";
+import { isPortalStaff } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     return loginError(origin, "session_missing_after_exchange", cookiesToSet, wantsAdmin);
   }
 
-  const isAdmin = isAllowedAdminEmail(user.email);
+  const isAdmin = await isPortalStaff(user);
   if (wantsAdmin && !isAdmin) {
     await supabase.auth.signOut();
     return loginError(origin, "not_admin", cookiesToSet, true);

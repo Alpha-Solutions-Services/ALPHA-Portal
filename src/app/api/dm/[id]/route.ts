@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { isAdminUser } from "@/lib/admin-auth";
+import { isPortalStaff } from "@/lib/admin-auth";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
@@ -23,7 +23,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const admin = isAdminUser(session.user);
+  const admin = await isPortalStaff(session.user);
   const service = getServiceRoleClient();
   const supabase = admin && service ? service : await createClient();
   if (!supabase) {
@@ -68,7 +68,7 @@ export async function DELETE(
   const session = await getSessionUser();
   if ("error" in session) return session.error;
 
-  const admin = isAdminUser(session.user);
+  const admin = await isPortalStaff(session.user);
   const service = getServiceRoleClient();
   const supabase = admin && service ? service : await createClient();
   if (!supabase) {

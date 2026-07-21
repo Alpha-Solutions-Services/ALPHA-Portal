@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { isAdminUser } from "@/lib/admin-auth";
+import { isPortalStaff } from "@/lib/admin-auth";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 
 export async function GET() {
   const session = await getSessionUser();
   if ("error" in session) return session.error;
-  if (!isAdminUser(session.user)) {
+  if (!(await isPortalStaff(session.user))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

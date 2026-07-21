@@ -25,6 +25,7 @@ function getOwnerAllowlist(): string[] {
 }
 
 /** Any admin (owner or staff) via env allowlist or DB portal_staff */
+/** Sync env allowlist only. Prefer `isPortalStaff` for API / layout gates. */
 export function isAdminUser(user: User | null): boolean {
   return isAllowedAdminEmail(user?.email);
 }

@@ -80,7 +80,7 @@ const tabs = [
   { id: "ai" as const, label: "Assistant", icon: Sparkles },
   { id: "knowledge" as const, label: "Knowledge", icon: BookOpen },
   { id: "reports" as const, label: "Reports", icon: BarChart3 },
-  { id: "staff" as const, label: "Staff", icon: Users },
+  { id: "staff" as const, label: "Team", icon: Users },
   { id: "inquiries" as const, label: "Inquiries", icon: Inbox },
   { id: "clients" as const, label: "Chat", icon: MessageSquare },
 ];

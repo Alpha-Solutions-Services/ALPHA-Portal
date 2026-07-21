@@ -20,7 +20,15 @@ import {
 import { LogoutButton } from "@/components/portal/LogoutButton";
 import { useDashboardMobileNavClose } from "@/components/layout/ResponsiveDashboardShell";
 
-export function AdminSidebar({ email }: { email?: string | null }) {
+export function AdminSidebar({
+  email,
+  isOwner = false,
+  role = "staff",
+}: {
+  email?: string | null;
+  isOwner?: boolean;
+  role?: string;
+}) {
   const close = useDashboardMobileNavClose();
 
   const links = [
@@ -33,8 +41,13 @@ export function AdminSidebar({ email }: { email?: string | null }) {
     { href: "/admin?tab=ai", label: "Assistant", icon: Sparkles },
     { href: "/admin?tab=knowledge", label: "Knowledge", icon: BookOpen },
     { href: "/admin?tab=reports", label: "Reports", icon: BarChart3 },
-    { href: "/admin/staff", label: "Users & staff", icon: Users },
-    { href: "/admin/audit", label: "Audit", icon: ScrollText },
+    { href: "/admin?tab=staff", label: "Team", icon: Users },
+    ...(isOwner
+      ? [
+          { href: "/admin/staff", label: "Users & staff", icon: Users },
+          { href: "/admin/audit", label: "Audit", icon: ScrollText },
+        ]
+      : []),
     { href: "/admin?tab=inquiries", label: "Inquiries", icon: Inbox },
     { href: "/admin?tab=clients", label: "Chat", icon: MessageSquare },
   ];
@@ -60,7 +73,9 @@ export function AdminSidebar({ email }: { email?: string | null }) {
           >
             Alpha Portal
           </p>
-          <p className="text-[11px] text-[var(--color-muted)]">Admin CRM</p>
+          <p className="text-[11px] text-[var(--color-muted)]">
+            Admin CRM · {role}
+          </p>
         </div>
       </Link>
 

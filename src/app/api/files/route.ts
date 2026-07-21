@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAdminUser } from "@/lib/admin-auth";
+import { isPortalStaff } from "@/lib/admin-auth";
 import { notifyOps } from "@/lib/email/notify";
 import { getSessionUser } from "@/lib/portal/require-session";
 import { getPortalUrl } from "@/lib/supabase/env";
@@ -25,7 +25,7 @@ export async function GET() {
   const session = await getSessionUser();
   if ("error" in session) return session.error;
 
-  const admin = isAdminUser(session.user);
+  const admin = await isPortalStaff(session.user);
   const service = getServiceRoleClient();
   const supabase = await createClient();
   if (!supabase) return NextResponse.json({ files: [] });
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Max file size is 15MB" }, { status: 400 });
   }
 
-  const admin = isAdminUser(session.user);
+  const admin = await isPortalStaff(session.user);
   const targetUserId = String(form.get("userId") || session.user.id);
   const note = String(form.get("note") || "").slice(0, 500) || null;
   const projectId = String(form.get("projectId") || "") || null;
