@@ -348,16 +348,47 @@ export async function DELETE(req: NextRequest) {
   const db = getServiceRoleClient();
   if (!db) return NextResponse.json({ error: "Not configured" }, { status: 503 });
 
-  const { data: existing } = await db.auth.admin.getUserById(userId);
-  const email = existing.user?.email?.toLowerCase();
+  const { data: existing, error: lookupError } =
+    await db.auth.admin.getUserById(userId);
+  if (lookupError || !existing.user) {
+    return NextResponse.json(
+      { error: lookupError?.message || "User not found" },
+      { status: 404 }
+    );
+  }
+  const email = existing.user.email?.toLowerCase();
 
-  const { error } = await db.auth.admin.deleteUser(userId);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  // Clear rows that historically blocked auth.users deletes (NO ACTION FKs).
+  // profiles.id → auth.users is the common blocker on this shared project.
+  await db.from("dispatch_load_approvals").update({ reviewed_by: null }).eq("reviewed_by", userId);
+  await db.from("dispatch_load_approvals").update({ requested_by: null }).eq("requested_by", userId);
+  const { error: profileError } = await db.from("profiles").delete().eq("id", userId);
+  if (profileError) {
+    console.error("[admin/users DELETE] profiles", profileError);
+    return NextResponse.json(
+      {
+        error: `Cannot remove profile data before delete: ${profileError.message}`,
+      },
+      { status: 400 }
+    );
   }
 
   if (email) {
     await db.from("portal_staff").delete().ilike("email", email);
+  }
+  await db.from("ai_rate_limits").delete().eq("user_id", userId);
+
+  const { error } = await db.auth.admin.deleteUser(userId);
+  if (error) {
+    console.error("[admin/users DELETE]", error);
+    return NextResponse.json(
+      {
+        error:
+          error.message ||
+          "Delete failed — related records may still reference this user",
+      },
+      { status: 400 }
+    );
   }
 
   logAuditEvent({
