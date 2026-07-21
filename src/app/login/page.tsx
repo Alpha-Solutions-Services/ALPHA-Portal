@@ -22,13 +22,6 @@ export default async function LoginPage({
       <Suspense fallback={null}>
         <LoginForm defaultAdmin={isAdmin} />
       </Suspense>
-      {searchParams.error ? (
-        <p className="fixed bottom-6 max-w-lg px-4 text-center text-sm text-red-400">
-          Authentication failed
-          {searchParams.reason ? `: ${searchParams.reason}` : ""}. Try again, or
-          check Supabase Redirect URLs include this portal.
-        </p>
-      ) : null}
     </main>
   );
 }

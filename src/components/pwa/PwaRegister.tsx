@@ -20,10 +20,11 @@ export function PwaRegister() {
     }
 
     const onBip = (e: Event) => {
+      const dismissed = sessionStorage.getItem("pwa-dismiss");
+      if (dismissed) return;
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
-      const dismissed = sessionStorage.getItem("pwa-dismiss");
-      if (!dismissed) setShow(true);
+      setShow(true);
     };
     window.addEventListener("beforeinstallprompt", onBip);
     return () => window.removeEventListener("beforeinstallprompt", onBip);

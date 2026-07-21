@@ -28,6 +28,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Alpha Portal",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
   formatDetection: { telephone: false },
   robots: { index: false, follow: false },
   manifest: "/manifest.webmanifest",

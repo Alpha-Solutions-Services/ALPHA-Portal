@@ -2,13 +2,34 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { isAllowedAdminEmail } from "@/lib/admin-allowlist";
 
+function authErrorMessage(reason: string | null): string {
+  if (!reason) {
+    return "Authentication failed. Try Continue with Google again, or confirm Supabase Redirect URLs include https://portal.alphasolutions.software/auth/callback";
+  }
+  const decoded = decodeURIComponent(reason);
+  if (decoded === "not_admin") {
+    return "This Google account is not on the admin allowlist.";
+  }
+  if (decoded === "missing_code") {
+    return "Sign-in was interrupted (missing auth code). Try Continue with Google again.";
+  }
+  if (/redirect|url not allowed|not allowed/i.test(decoded)) {
+    return `${decoded} — add https://portal.alphasolutions.software/auth/callback in Supabase → Authentication → URL Configuration → Redirect URLs.`;
+  }
+  return decoded;
+}
+
 export function LoginForm({ defaultAdmin = false }: { defaultAdmin?: boolean }) {
+  const sp = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    sp?.get("error") === "auth" ? authErrorMessage(sp.get("reason")) : null,
+  );
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">(
     defaultAdmin ? "signin" : "signin"
@@ -63,14 +84,9 @@ export function LoginForm({ defaultAdmin = false }: { defaultAdmin?: boolean }) 
       return;
     }
     const next = defaultAdmin ? "/admin" : "/dashboard";
-    // Path-only redirect (no query) matches Supabase allowlist more reliably;
-    // next is stored in sessionStorage for the callback page.
-    try {
-      sessionStorage.setItem("portal_oauth_next", next);
-    } catch {
-      /* ignore */
-    }
-    const redirectTo = `${window.location.origin}/auth/callback`;
+    // Include next in redirectTo so the server callback can route without sessionStorage.
+    // Supabase matches the path; query string is fine when /auth/callback is allowlisted.
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -85,7 +101,7 @@ export function LoginForm({ defaultAdmin = false }: { defaultAdmin?: boolean }) 
       setError(
         err.message.includes("provider")
           ? "Google sign-in is not enabled in Supabase Auth → Providers."
-          : `${err.message} — add ${redirectTo} to Supabase Auth → URL Configuration → Redirect URLs.`
+          : `${err.message} — add https://portal.alphasolutions.software/auth/callback to Supabase Auth → URL Configuration → Redirect URLs.`
       );
       setBusy(false);
     }
