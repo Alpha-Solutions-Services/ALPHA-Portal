@@ -283,9 +283,6 @@ export function WhatsAppChat({
           >
             {mode === "admin" ? "Client conversation" : "Messages"}
           </p>
-          <p className="text-xs text-[var(--color-muted)]">
-            WhatsApp-style chat · images · edit your messages
-          </p>
         </div>
         {mode === "admin" && onComposeAssist ? (
           <div className="flex flex-wrap gap-1">
