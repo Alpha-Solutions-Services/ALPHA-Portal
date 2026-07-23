@@ -6,6 +6,7 @@ import {
   Calendar,
   FileSignature,
   FileText,
+  Files,
   FolderKanban,
   LayoutDashboard,
   MessageSquare,
@@ -31,7 +32,7 @@ export function PortalSidebar({
     { href: "/dashboard?tab=contracts", label: "Contracts", icon: FileSignature },
     { href: "/dashboard?tab=schedule", label: "Schedule", icon: Calendar },
     { href: "/dashboard?tab=tickets", label: "Tickets", icon: Ticket },
-    { href: "/dashboard?tab=files", label: "Files", icon: FileText },
+    { href: "/dashboard?tab=files", label: "Files", icon: Files },
     { href: "/dashboard?tab=messages", label: "Messages", icon: MessageSquare },
     { href: "/dashboard?tab=ai", label: "Assistant", icon: Sparkles },
   ];

@@ -13,9 +13,10 @@ import {
   MessageSquare,
   Sparkles,
   Ticket,
+  Files,
 } from "lucide-react";
-import clsx from "clsx";
 import type { PortalFile, PortalProject } from "@/lib/sanity/portal-data";
+import { DashboardTabNav } from "@/components/layout/DashboardTabNav";
 import { ProjectCard } from "./ProjectCard";
 import { FileLibrary } from "./FileLibrary";
 import {
@@ -52,7 +53,7 @@ const tabs = [
   { id: "contracts" as const, label: "Contracts", icon: FileSignature },
   { id: "schedule" as const, label: "Schedule", icon: Calendar },
   { id: "tickets" as const, label: "Tickets", icon: Ticket },
-  { id: "files" as const, label: "Files", icon: FileText },
+  { id: "files" as const, label: "Files", icon: Files },
   { id: "messages" as const, label: "Messages", icon: MessageSquare },
   { id: "ai" as const, label: "Assistant", icon: Sparkles },
 ];
@@ -145,37 +146,17 @@ export function PortalDashboardClient({
         </p>
       </header>
 
-      <div
-        className="mb-8 flex flex-wrap gap-2 border-b border-[var(--color-border)] pb-4"
-        role="tablist"
-      >
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            onClick={() => {
-              setActiveTab(tab.id);
-              if (tab.id !== "projects") setSelectedProject(null);
-            }}
-            className={clsx(
-              "inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-              activeTab === tab.id
-                ? "bg-[var(--color-accent-dim)] text-[var(--color-accent)]"
-                : "text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
-            )}
-          >
-            <tab.icon className="h-4 w-4 shrink-0" aria-hidden />
-            {tab.label}
-            {tab.id === "messages" && unreadMessages > 0 ? (
-              <span className="rounded-full bg-[var(--color-accent)] px-1.5 text-[10px] font-bold text-[#05080f]">
-                {unreadMessages}
-              </span>
-            ) : null}
-          </button>
-        ))}
-      </div>
+      <DashboardTabNav
+        tabs={tabs.map((tab) => ({
+          ...tab,
+          badge: tab.id === "messages" ? unreadMessages : undefined,
+        }))}
+        activeId={activeTab}
+        onChange={(id) => {
+          setActiveTab(id as (typeof tabs)[number]["id"]);
+          if (id !== "projects") setSelectedProject(null);
+        }}
+      />
 
       <motion.div
         key={activeTab}

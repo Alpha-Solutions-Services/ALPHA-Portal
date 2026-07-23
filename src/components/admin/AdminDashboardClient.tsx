@@ -32,6 +32,7 @@ import {
   AdminStaffPanel,
 } from "@/components/admin/AdminSystemPanels";
 import { useUi } from "@/components/ui/UiProvider";
+import { DashboardTabNav } from "@/components/layout/DashboardTabNav";
 
 const WhatsAppChat = dynamic(
   () =>
@@ -187,29 +188,11 @@ export function AdminDashboardClient() {
 
       {loadErr ? <p className="mb-6 text-sm text-red-400">{loadErr}</p> : null}
 
-      <div
-        className="mb-8 flex gap-2 overflow-x-auto border-b border-[var(--color-border)] pb-4"
-        role="tablist"
-      >
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-            className={clsx(
-              "inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-              tab === t.id
-                ? "bg-[var(--color-accent-dim)] text-[var(--color-accent)]"
-                : "text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
-            )}
-          >
-            <t.icon className="h-4 w-4" aria-hidden />
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <DashboardTabNav
+        tabs={tabs}
+        activeId={tab}
+        onChange={(id) => setTab(id as (typeof tabs)[number]["id"])}
+      />
 
       <motion.div
         key={tab}
